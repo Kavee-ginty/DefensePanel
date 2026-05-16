@@ -1,16 +1,21 @@
+import { ALLOWED_ACCEPT } from '../lib/extractDocumentText.js';
+
+const FILE_ERROR = 'Please upload a PDF, DOCX, or PPTX file.';
+const DROPZONE_SUBTEXT = 'PDF, DOCX, or PPTX';
+
 export const MODE_CONFIG = {
   startup: {
     id: 'startup',
     title: 'Startup Pitch',
     briefingTitle: 'Brief the investors',
     briefingDescription:
-      'Upload your pitch deck or presentation (PDF). The panel will interrogate your traction, revenue model, and architecture.',
+      'Upload your pitch deck or presentation (PDF, DOCX, or PPTX). The panel will interrogate your traction, revenue model, and architecture.',
     uploadHint: 'Upload your pitch deck or presentation',
-    dropzoneSubtext: 'PDF only — deck or presentation',
-    pdfError: 'Please upload your pitch deck as a PDF.',
+    dropzoneSubtext: DROPZONE_SUBTEXT,
+    fileError: FILE_ERROR,
     submitLabel: 'Deploy Panel',
     arenaSubtitle: 'VC Pitch Defense',
-    accept: 'application/pdf,.pdf',
+    accept: ALLOWED_ACCEPT,
     panelists: [
       {
         id: 'core',
@@ -29,13 +34,13 @@ export const MODE_CONFIG = {
     title: 'Academic Viva',
     briefingTitle: 'Prepare for your viva',
     briefingDescription:
-      'Upload your thesis or research paper (PDF). Examiners will challenge methodology, claims, and conclusions.',
-    uploadHint: 'Upload your thesis or research PDF',
-    dropzoneSubtext: 'PDF only — thesis or paper',
-    pdfError: 'Please upload your thesis as a PDF.',
+      'Upload your thesis or research paper (PDF, DOCX, or PPTX). Examiners will challenge methodology, claims, and conclusions.',
+    uploadHint: 'Upload your thesis or research document',
+    dropzoneSubtext: DROPZONE_SUBTEXT,
+    fileError: FILE_ERROR,
     submitLabel: 'Initialize Panel',
     arenaSubtitle: 'Academic Viva',
-    accept: 'application/pdf,.pdf',
+    accept: ALLOWED_ACCEPT,
     panelists: [
       {
         id: 'examiner',
@@ -54,13 +59,13 @@ export const MODE_CONFIG = {
     title: 'Technical Interview',
     briefingTitle: 'Brief the hiring panel',
     briefingDescription:
-      'Upload your CV (PDF). The panel will probe resume claims and run spontaneous technical challenges.',
-    uploadHint: 'Upload your CV (PDF)',
-    dropzoneSubtext: 'PDF only — curriculum vitae',
-    pdfError: 'Please upload your CV as a PDF.',
+      'Upload your CV (PDF, DOCX, or PPTX). The panel will probe resume claims and run spontaneous technical challenges.',
+    uploadHint: 'Upload your CV',
+    dropzoneSubtext: DROPZONE_SUBTEXT,
+    fileError: FILE_ERROR,
     submitLabel: 'Start Interview',
     arenaSubtitle: 'Technical Interview',
-    accept: 'application/pdf,.pdf',
+    accept: ALLOWED_ACCEPT,
     panelists: [
       {
         id: 'hm',

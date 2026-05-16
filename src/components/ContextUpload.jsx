@@ -1,6 +1,10 @@
-import { useCallback, useId, useMemo, useState } from 'react';
-import { ArrowLeft, Check, FileText, Upload } from 'lucide-react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Check, FileText, Loader2, Upload, X } from 'lucide-react';
 import { getModeConfig } from '../config/modeConfig.js';
+import {
+  extractDocumentText,
+  getDocumentKind,
+} from '../lib/extractDocumentText.js';
 
 export default function ContextUpload({
   mode = 'startup',
@@ -16,26 +20,51 @@ export default function ContextUpload({
 }) {
   const config = useMemo(() => getModeConfig(mode), [mode]);
   const inputId = useId();
+  const inputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const resolvedTitle = title ?? config.briefingTitle;
   const resolvedDescription = description ?? config.briefingDescription;
   const resolvedSubmit = submitLabel ?? config.submitLabel;
 
+  const clearFile = useCallback(() => {
+    onFileChange?.(null);
+    setLocalError(null);
+    setIsExtracting(false);
+    if (inputRef.current) inputRef.current.value = '';
+  }, [onFileChange]);
+
   const handleFiles = useCallback(
-    (files) => {
+    async (files) => {
       const next = files?.[0];
       if (!next) return;
-      if (next.type !== 'application/pdf') {
-        setLocalError(config.pdfError);
-        onFileChange?.(null);
+
+      if (!getDocumentKind(next)) {
+        setLocalError(config.fileError);
+        clearFile();
         return;
       }
+
       setLocalError(null);
       onFileChange?.(next);
+      setIsExtracting(true);
+
+      try {
+        const text = await extractDocumentText(next);
+        console.log('[Defense Panel] extracted text:', text);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Could not extract text from file.';
+        setLocalError(message);
+        onFileChange?.(null);
+        if (inputRef.current) inputRef.current.value = '';
+      } finally {
+        setIsExtracting(false);
+      }
     },
-    [onFileChange, config.pdfError],
+    [onFileChange, config.fileError, clearFile],
   );
 
   const onDrop = (e) => {
@@ -92,6 +121,7 @@ export default function ContextUpload({
             ].join(' ')}
           >
             <input
+              ref={inputRef}
               id={inputId}
               type="file"
               accept={config.accept}
@@ -124,12 +154,37 @@ export default function ContextUpload({
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">
                 {file.name}
               </span>
-              <Check
-                className="h-5 w-5 shrink-0 text-green-400"
-                strokeWidth={2}
-                aria-hidden
-              />
+              {isExtracting ? (
+                <>
+                  <Loader2
+                    className="h-5 w-5 shrink-0 animate-spin text-blue-400"
+                    aria-hidden
+                  />
+                  <span className="sr-only">Extracting text</span>
+                </>
+              ) : (
+                <Check
+                  className="h-5 w-5 shrink-0 text-green-400"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+              )}
+              <button
+                type="button"
+                onClick={clearFile}
+                disabled={isExtracting}
+                className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:pointer-events-none disabled:opacity-40"
+                aria-label="Remove file"
+              >
+                <X className="h-5 w-5" strokeWidth={2} aria-hidden />
+              </button>
             </div>
+          )}
+
+          {file && isExtracting && (
+            <p className="mt-2 text-center text-xs text-zinc-500">
+              Extracting text…
+            </p>
           )}
 
           {(error || localError) && (
@@ -143,7 +198,7 @@ export default function ContextUpload({
 
           <button
             type="button"
-            disabled={isLoading || !file}
+            disabled={isLoading || !file || isExtracting}
             onClick={() => onInitialize?.()}
             className="mt-8 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all duration-150 hover:scale-[1.02] hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
           >
@@ -154,4 +209,3 @@ export default function ContextUpload({
     </div>
   );
 }
-
