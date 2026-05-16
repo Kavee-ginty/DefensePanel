@@ -1,4 +1,4 @@
-import { ALLOWED_ACCEPT } from '../lib/extractDocumentText.js';
+import { ALLOWED_ACCEPT } from './allowedAccept.js';
 
 const FILE_ERROR = 'Please upload a PDF, DOCX, or PPTX file.';
 const DROPZONE_SUBTEXT = 'PDF, DOCX, or PPTX';

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { getModeConfig } from '../config/modeConfig.js';
 import { getBeyEmbedUrl } from '../config/beyEmbeds.js';
 import BeyPanelFrame from './BeyPanelFrame.jsx';
@@ -14,6 +14,7 @@ export default function SimulationArena({
 }) {
   const config = getModeConfig(mode);
   const isPitchMode = mode === 'startup';
+  const sessionStartedAt = useRef(Date.now());
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
@@ -28,21 +29,20 @@ export default function SimulationArena({
     [config.panelists],
   );
 
-  const panelColumn = (
-    <div className="flex w-full shrink-0 flex-col gap-4 lg:w-[340px]">
-      {panels.map((panel, index) => (
-        <BeyPanelFrame
-          key={panel.label + index}
-          embedUrl={panel.embedUrl}
-          label={panel.label}
-          isBargeIn={panel.isBargeIn}
-        />
-      ))}
-    </div>
-  );
+  const handleEndConfirm = () => {
+    setShowEndModal(false);
+    const durationSeconds = Math.max(
+      1,
+      Math.round((Date.now() - sessionStartedAt.current) / 1000),
+    );
+    onEndSession?.({
+      durationSeconds,
+      modeId: mode,
+    });
+  };
 
   const liveBadge = (
-    <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+    <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
       <span
         className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
         aria-hidden
@@ -63,21 +63,68 @@ export default function SimulationArena({
     </div>
   );
 
+  const pitchPanelColumn = (
+    <div className="flex h-full min-h-0 w-full shrink-0 flex-col gap-3 lg:w-[380px]">
+      {panels.map((panel, index) => (
+        <BeyPanelFrame
+          key={panel.label + index}
+          embedUrl={panel.embedUrl}
+          label={panel.label}
+          isBargeIn={panel.isBargeIn}
+          fillHeight
+        />
+      ))}
+    </div>
+  );
+
+  const standardPanelColumn = (
+    <div className="flex w-full shrink-0 flex-col gap-4 lg:w-[340px]">
+      {panels.map((panel, index) => (
+        <BeyPanelFrame
+          key={panel.label + index}
+          embedUrl={panel.embedUrl}
+          label={panel.label}
+          isBargeIn={panel.isBargeIn}
+        />
+      ))}
+    </div>
+  );
+
   return (
-    <div className="relative min-h-screen bg-black font-sans text-zinc-50">
-      <div className="absolute left-4 top-4 z-10 hidden text-xs font-medium uppercase tracking-wider text-zinc-500 sm:block">
+    <div className="relative overflow-hidden bg-black font-sans text-zinc-50">
+      <div className="absolute left-4 top-2 z-10 hidden text-xs font-medium uppercase tracking-wider text-zinc-500 sm:block">
         {config.arenaSubtitle}
       </div>
 
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-4 p-4 pt-12 lg:flex-row lg:gap-6 lg:p-6 lg:pt-14">
+      <div
+        className={[
+          'mx-auto flex max-w-7xl flex-col gap-4 p-4 lg:flex-row lg:gap-6 lg:p-6',
+          isPitchMode
+            ? 'h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] overflow-hidden pt-2'
+            : 'min-h-[calc(100dvh-5rem)] pt-2',
+        ].join(' ')}
+      >
         {isPitchMode ? (
           <>
-            <div className="relative min-w-0 flex-1">
-              <PdfPresentationView file={documentFile} className="h-full" />
+            <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
+              <div className="relative min-h-0 flex-1 overflow-y-auto rounded-xl">
+                <PdfPresentationView
+                  file={documentFile}
+                  compact
+                  className="h-full min-h-full"
+                />
+              </div>
 
-              <div className="absolute right-3 top-3 z-20 w-[min(100%,240px)] overflow-hidden rounded-xl border border-zinc-700/80 shadow-[0_8px_32px_rgba(0,0,0,0.65)] ring-2 ring-cyan-400/50 sm:right-4 sm:top-4 sm:w-[280px]">
-                <UserVideo muted={muted} videoOff={videoOff} className="aspect-video" />
-                <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300 backdrop-blur-sm">
+              <div className="pointer-events-none absolute right-3 top-3 z-20 w-[190px] overflow-hidden rounded-xl border border-zinc-700/80 shadow-[0_8px_32px_rgba(0,0,0,0.65)] ring-2 ring-cyan-400/50">
+                <div className="pointer-events-auto aspect-video w-full">
+                  <UserVideo
+                    muted={muted}
+                    videoOff={videoOff}
+                    pipMode
+                    className="h-full w-full"
+                  />
+                </div>
+                <div className="pointer-events-none absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300 backdrop-blur-sm">
                   Presenter
                 </div>
               </div>
@@ -85,11 +132,11 @@ export default function SimulationArena({
               {liveBadge}
               {arenaControls}
             </div>
-            {panelColumn}
+            {pitchPanelColumn}
           </>
         ) : (
           <>
-            <div className="relative min-w-0 flex-1">
+            <div className="relative min-h-0 min-w-0 flex-1">
               <UserVideo
                 muted={muted}
                 videoOff={videoOff}
@@ -98,7 +145,7 @@ export default function SimulationArena({
               {liveBadge}
               {arenaControls}
             </div>
-            {panelColumn}
+            {standardPanelColumn}
           </>
         )}
       </div>
@@ -106,10 +153,7 @@ export default function SimulationArena({
       <EndSessionModal
         open={showEndModal}
         onCancel={() => setShowEndModal(false)}
-        onConfirm={() => {
-          setShowEndModal(false);
-          onEndSession?.();
-        }}
+        onConfirm={handleEndConfirm}
       />
     </div>
   );

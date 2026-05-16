@@ -2,6 +2,7 @@ export default function BeyPanelFrame({
   embedUrl,
   label = null,
   isBargeIn = false,
+  fillHeight = false,
   className = '',
 }) {
   const borderAccent = isBargeIn
@@ -12,11 +13,17 @@ export default function BeyPanelFrame({
     <div
       className={[
         'w-full overflow-hidden rounded-xl bg-zinc-900/80 transition-shadow duration-200',
+        fillHeight ? 'flex min-h-0 flex-1 flex-col' : '',
         borderAccent,
         className,
       ].join(' ')}
     >
-      <div className="relative aspect-video w-full">
+      <div
+        className={[
+          'relative w-full',
+          fillHeight ? 'min-h-0 flex-1' : 'aspect-video',
+        ].join(' ')}
+      >
         <iframe
           src={embedUrl}
           title={label || 'AI panelist'}

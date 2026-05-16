@@ -1,12 +1,12 @@
 import JSZip from 'jszip';
 import mammoth from 'mammoth';
 import pdfToText from 'react-pdftotext';
+import { ALLOWED_ACCEPT } from '../config/allowedAccept.js';
+
+export { ALLOWED_ACCEPT };
 
 const DRAWINGML_NS =
   'http://schemas.openxmlformats.org/drawingml/2006/main';
-
-export const ALLOWED_ACCEPT =
-  'application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx';
 
 const MIME_BY_KIND = {
   pdf: ['application/pdf'],

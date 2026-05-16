@@ -1,17 +1,43 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from './context/AuthContext.jsx';
 import { getModeConfig } from './config/modeConfig.js';
+import {
+  chartFromSessions,
+  createSession,
+  fetchSessions,
+} from './lib/sessionsApi.js';
+import { buildInterimScores } from './lib/interimScoring.js';
+import {
+  modeToScenarioType,
+  sessionToDebriefProps,
+} from './lib/sessionUtils.js';
 import AppShell from './components/AppShell.jsx';
 import AuthPage from './components/AuthPage.jsx';
 import ModeSelection from './components/ModeSelection.jsx';
-import ContextUpload from './components/ContextUpload.jsx';
-import SimulationArena from './components/SimulationArena.jsx';
-import DebriefDashboard from './components/DebriefDashboard.jsx';
-import AboutPage from './components/pages/AboutPage.jsx';
-import ContactPage from './components/pages/ContactPage.jsx';
-import PricingPage from './components/pages/PricingPage.jsx';
-import HistoryPage from './components/pages/HistoryPage.jsx';
+
+const ContextUpload = lazy(() => import('./components/ContextUpload.jsx'));
+const SimulationArena = lazy(() => import('./components/SimulationArena.jsx'));
+const DebriefDashboard = lazy(
+  () => import('./components/DebriefDashboard.jsx'),
+);
+const AboutPage = lazy(() => import('./components/pages/AboutPage.jsx'));
+const ContactPage = lazy(() => import('./components/pages/ContactPage.jsx'));
+const PricingPage = lazy(() => import('./components/pages/PricingPage.jsx'));
+const HistoryPage = lazy(
+  () => import('./components/pages/HistoryPage.jsx'),
+);
+
+const CACHE_TTL_MS = 30_000;
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-zinc-400">
+      <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
+      <span className="sr-only">Loading</span>
+    </div>
+  );
+}
 
 export default function App() {
   const { session, user, loading, signOut } = useAuth();
@@ -20,6 +46,18 @@ export default function App() {
   const [view, setView] = useState('lobby');
   const [mode, setMode] = useState(null);
   const [file, setFile] = useState(null);
+  const [activeSession, setActiveSession] = useState(null);
+  const [scoreHistory, setScoreHistory] = useState([]);
+  const [debriefFromHistory, setDebriefFromHistory] = useState(false);
+  const [debriefSaving, setDebriefSaving] = useState(false);
+  const [sessionError, setSessionError] = useState(null);
+  const [sessionsCache, setSessionsCache] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState(null);
+  const [sessionsCacheFetchedAt, setSessionsCacheFetchedAt] = useState(0);
+
+  const accessToken = session?.access_token ?? null;
+  const userId = user?.id ?? null;
 
   const userLabel =
     user?.user_metadata?.username ||
@@ -27,6 +65,27 @@ export default function App() {
     null;
 
   const showDevNav = import.meta.env.DEV;
+
+  const loadSessions = useCallback(
+    async (background = false) => {
+      if (!accessToken) return;
+      if (!background) setSessionsLoading(true);
+      setSessionsError(null);
+      try {
+        const { sessions: rows } = await fetchSessions(accessToken);
+        setSessionsCache(rows ?? []);
+        setSessionsCacheFetchedAt(Date.now());
+      } catch (err) {
+        console.error('[App] loadSessions', err);
+        if (!background) {
+          setSessionsError(err.message || 'Could not load sessions.');
+        }
+      } finally {
+        if (!background) setSessionsLoading(false);
+      }
+    },
+    [accessToken],
+  );
 
   useEffect(() => {
     if (!session && inSimulation) {
@@ -42,21 +101,37 @@ export default function App() {
     }
   }, [view, mode, file]);
 
+  useEffect(() => {
+    if (page !== 'history' || !accessToken) return;
+    const age = Date.now() - sessionsCacheFetchedAt;
+    const hasFreshCache =
+      sessionsCache.length > 0 && age < CACHE_TTL_MS;
+    loadSessions(hasFreshCache);
+  }, [page, accessToken]);
+
   const goLobby = () => {
     setView('lobby');
     setMode(null);
     setFile(null);
+    setActiveSession(null);
+    setDebriefFromHistory(false);
+    setDebriefSaving(false);
+    setSessionError(null);
   };
 
   const navigateMarketing = (nextPage) => {
     setInSimulation(false);
     setPage(nextPage);
+    if (nextPage !== 'history') {
+      setDebriefFromHistory(false);
+    }
   };
 
   const startSimulation = () => {
     setInSimulation(true);
     setPage('home');
     setView(mode ? 'briefing' : 'lobby');
+    setDebriefFromHistory(false);
   };
 
   const navigateSim = (next) => {
@@ -65,6 +140,89 @@ export default function App() {
     setInSimulation(true);
     setView(next);
   };
+
+  const openSessionDebrief = useCallback((row, allSessions) => {
+    if (!row) return;
+    const list = allSessions ?? sessionsCache;
+    setSessionError(null);
+    setActiveSession(row);
+    setScoreHistory(chartFromSessions(list));
+    setDebriefFromHistory(true);
+    setDebriefSaving(false);
+    setInSimulation(true);
+    setView('debrief');
+  }, [sessionsCache]);
+
+  const handleEndSession = useCallback(
+    async ({ durationSeconds, modeId }) => {
+      const goDebrief = () => {
+        setInSimulation(true);
+        setView('debrief');
+      };
+
+      const scenarioType = modeToScenarioType(modeId);
+      const interim = buildInterimScores(scenarioType, durationSeconds);
+      const placeholder = {
+        scenario_type: scenarioType,
+        duration_seconds: durationSeconds,
+        filler_word_count: interim.filler_word_count,
+        critical_feedback: interim.critical_feedback,
+        overall_score: interim.overall_score,
+        created_at: new Date().toISOString(),
+      };
+
+      const projected = [placeholder, ...sessionsCache];
+      setActiveSession(placeholder);
+      setScoreHistory(chartFromSessions(projected));
+      setDebriefFromHistory(false);
+      setSessionError(null);
+      goDebrief();
+
+      if (!accessToken || !userId) return;
+
+      setDebriefSaving(true);
+      try {
+        const { session: saved } = await createSession(
+          {
+            mode_id: modeId,
+            scenario_type: scenarioType,
+            duration_seconds: durationSeconds,
+          },
+          accessToken,
+          userId,
+        );
+        setActiveSession(saved);
+        const nextCache = [
+          saved,
+          ...sessionsCache.filter((s) => s.id !== saved.id),
+        ];
+        setSessionsCache(nextCache);
+        setScoreHistory(chartFromSessions(nextCache));
+        setSessionsCacheFetchedAt(Date.now());
+      } catch (err) {
+        console.error('[App] handleEndSession', err);
+        setSessionError(err.message);
+      } finally {
+        setDebriefSaving(false);
+      }
+    },
+    [accessToken, userId, sessionsCache],
+  );
+
+  const handleDebriefReturn = () => {
+    if (debriefFromHistory) {
+      setActiveSession(null);
+      setDebriefFromHistory(false);
+      setDebriefSaving(false);
+      setInSimulation(false);
+      setPage('history');
+      setView('lobby');
+      return;
+    }
+    goLobby();
+  };
+
+  const debriefProps = sessionToDebriefProps(activeSession);
 
   if (loading) {
     return (
@@ -106,15 +264,39 @@ export default function App() {
             <SimulationArena
               mode={mode}
               documentFile={file}
-              onEndSession={() => navigateSim('debrief')}
+              onEndSession={handleEndSession}
             />
           );
         case 'debrief':
           return (
-            <DebriefDashboard
-              scenario={mode ? getModeConfig(mode).title : undefined}
-              onReturn={goLobby}
-            />
+            <>
+              {sessionError && (
+                <div className="mx-auto max-w-4xl px-4 pt-4">
+                  <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-200">
+                    {sessionError} — showing local debrief only.
+                  </p>
+                </div>
+              )}
+              <DebriefDashboard
+                {...debriefProps}
+                isLoading={debriefSaving}
+                scenario={
+                  debriefProps.scenario ??
+                  (mode ? getModeConfig(mode).title : undefined)
+                }
+                scoreHistory={
+                  scoreHistory.length > 0
+                    ? scoreHistory
+                    : activeSession
+                      ? [{ label: 'S1', score: activeSession.overall_score }]
+                      : []
+                }
+                returnLabel={
+                  debriefFromHistory ? 'Back to History' : 'Return to Lobby'
+                }
+                onReturn={handleDebriefReturn}
+              />
+            </>
           );
         default:
           return null;
@@ -140,7 +322,17 @@ export default function App() {
       case 'pricing':
         return <PricingPage onStartSimulation={startSimulation} />;
       case 'history':
-        return <HistoryPage />;
+        return (
+          <HistoryPage
+            sessions={sessionsCache}
+            loading={sessionsLoading}
+            error={sessionsError}
+            onRetry={() => loadSessions(false)}
+            onOpenSession={(row) =>
+              openSessionDebrief(row, sessionsCache)
+            }
+          />
+        );
       default:
         return (
           <ModeSelection
@@ -168,7 +360,7 @@ export default function App() {
       onSimNavigate={navigateSim}
       showDevNav={showDevNav}
     >
-      {body}
+      <Suspense fallback={<RouteFallback />}>{body}</Suspense>
     </AppShell>
   );
 }

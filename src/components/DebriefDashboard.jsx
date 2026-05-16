@@ -1,14 +1,12 @@
 import { useId } from 'react';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 
-const DEFAULT_HISTORY = [
-  { x: 'S1', a: 58, b: 52 },
-  { x: 'S2', a: 62, b: 55 },
-  { x: 'S3', a: 68, b: 60 },
-  { x: 'S4', a: 72, b: 63 },
-  { x: 'S5', a: 78, b: 70 },
-  { x: 'S6', a: 82, b: 76 },
-  { x: 'S7', a: 82, b: 79 },
+const DEFAULT_SCORE_HISTORY = [
+  { label: 'S1', score: 58 },
+  { label: 'S2', score: 62 },
+  { label: 'S3', score: 68 },
+  { label: 'S4', score: 72 },
+  { label: 'S5', score: 78 },
 ];
 
 function formatEndedAt(d) {
@@ -42,15 +40,16 @@ function buildAreaPath(linePath, width, height, pad) {
 export default function DebriefDashboard({
   headerTitle = 'Defense Terminated',
   scenario = null,
-  endedAt = new Date('2023-10-26T14:30:00'),
+  endedAt = new Date(),
   subtitleTime = '',
   overallScore = 82,
   fillerWordCount = 14,
   fillerDisplay = `14 'Ums'`,
   durationLabel = '04:12',
-  criticalFeedback = `Your opening was strong, but you failed to defend your revenue model when challenged by the panel. Tighten your story around unit economics and name one credible comparable before the next session.`,
-  history = DEFAULT_HISTORY,
-  seriesLabels = { a: 'Clarity', b: 'Composure' },
+  criticalFeedback = '',
+  scoreHistory = DEFAULT_SCORE_HISTORY,
+  returnLabel = 'Return to Lobby',
+  isLoading = false,
   onReturn,
 }) {
   const chartGradientId = useId().replace(/:/g, '');
@@ -65,12 +64,11 @@ export default function DebriefDashboard({
   const maxY = 100;
   const ys = [0, 20, 40, 60, 80, 100];
 
-  const seriesA = history.map((p) => p.a);
-  const seriesB = history.map((p) => p.b);
-  const pathA = buildPath(seriesA, chartW, chartH, pad, maxY);
-  const pathB = buildPath(seriesB, chartW, chartH, pad, maxY);
-  const areaA = buildAreaPath(pathA, chartW, chartH, pad);
-  const areaB = buildAreaPath(pathB, chartW, chartH, pad);
+  const history =
+    scoreHistory?.length > 0 ? scoreHistory : DEFAULT_SCORE_HISTORY;
+  const scores = history.map((p) => p.score);
+  const pathScore = buildPath(scores, chartW, chartH, pad, maxY);
+  const areaScore = buildAreaPath(pathScore, chartW, chartH, pad);
 
   return (
     <div className="relative min-h-screen bg-slate-950 px-4 py-10 font-sans text-slate-50 sm:px-8">
@@ -94,7 +92,12 @@ export default function DebriefDashboard({
           )}
         </header>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div
+          className={[
+            'grid grid-cols-1 gap-4 md:grid-cols-3',
+            isLoading ? 'animate-pulse opacity-80' : '',
+          ].join(' ')}
+        >
           <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-emerald-950/50 to-slate-900/40 p-6 backdrop-blur-md">
             <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
               Overall score
@@ -136,25 +139,30 @@ export default function DebriefDashboard({
             Critical feedback
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-200">
-            {criticalFeedback}
+            {criticalFeedback ||
+              'No feedback recorded for this session.'}
           </p>
         </section>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md">
+        <section
+          className={[
+            'rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md',
+            isLoading ? 'animate-pulse' : '',
+          ].join(' ')}
+        >
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold tracking-tight">
-              Performance trend
+              Score trend (last {history.length} sessions)
+              {isLoading && (
+                <span className="ml-2 text-xs font-normal text-slate-500">
+                  Updating…
+                </span>
+              )}
             </h2>
-            <div className="flex items-center gap-4 text-xs text-slate-400">
-              <span className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                {seriesLabels.a}
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
-                {seriesLabels.b}
-              </span>
-            </div>
+            <span className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+              Overall score
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -162,10 +170,16 @@ export default function DebriefDashboard({
               viewBox={`0 0 ${chartW} ${chartH}`}
               className="h-auto w-full min-w-[520px]"
               role="img"
-              aria-label="Score progression chart"
+              aria-label="Overall score progression for last sessions"
             >
               <defs>
-                <linearGradient id={`fillA-${chartGradientId}`} x1="0" x2="0" y1="0" y2="1">
+                <linearGradient
+                  id={`fillScore-${chartGradientId}`}
+                  x1="0"
+                  x2="0"
+                  y1="0"
+                  y2="1"
+                >
                   <stop
                     offset="0%"
                     stopColor="rgb(34 211 238)"
@@ -177,19 +191,13 @@ export default function DebriefDashboard({
                     stopOpacity="0"
                   />
                 </linearGradient>
-                <linearGradient id={`fillB-${chartGradientId}`} x1="0" x2="0" y1="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="rgb(20 184 166)"
-                    stopOpacity="0.28"
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="rgb(20 184 166)"
-                    stopOpacity="0"
-                  />
-                </linearGradient>
-                <filter id={`lineGlow-${chartGradientId}`} x="-30%" y="-30%" width="160%" height="160%">
+                <filter
+                  id={`lineGlow-${chartGradientId}`}
+                  x="-30%"
+                  y="-30%"
+                  width="160%"
+                  height="160%"
+                >
                   <feGaussianBlur stdDeviation="2" result="blur" />
                   <feMerge>
                     <feMergeNode in="blur" />
@@ -224,47 +232,35 @@ export default function DebriefDashboard({
                 );
               })}
 
-              {areaB ? (
-                <path d={areaB} fill={`url(#fillB-${chartGradientId})`} stroke="none" />
-              ) : null}
-              {areaA ? (
-                <path d={areaA} fill={`url(#fillA-${chartGradientId})`} stroke="none" />
+              {areaScore ? (
+                <path
+                  d={areaScore}
+                  fill={`url(#fillScore-${chartGradientId})`}
+                  stroke="none"
+                />
               ) : null}
 
               <path
-                d={pathB}
-                fill="none"
-                stroke="rgb(20 184 166)"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                filter={`url(#lineGlow-${chartGradientId})`}
-              />
-              <path
-                d={pathA}
+                d={pathScore}
                 fill="none"
                 stroke="rgb(34 211 238)"
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                filter={`url(#lineGlow-${chartGradientId})`}
               />
 
               {history.map((p, i) => {
                 const innerW = chartW - pad * 2;
                 const step = innerW / Math.max(1, history.length - 1);
                 const px = pad + i * step;
-                const pyA =
+                const py =
                   pad +
                   (chartH - pad * 2) -
-                  (p.a / maxY) * (chartH - pad * 2);
-                const pyB =
-                  pad +
-                  (chartH - pad * 2) -
-                  (p.b / maxY) * (chartH - pad * 2);
+                  (p.score / maxY) * (chartH - pad * 2);
                 return (
-                  <g key={p.x}>
-                    <circle cx={px} cy={pyA} r={4} fill="rgb(34 211 238)" />
-                    <circle cx={px} cy={pyB} r={4} fill="rgb(20 184 166)" />
+                  <g key={p.label + i}>
+                    <circle cx={px} cy={py} r={4} fill="rgb(34 211 238)" />
                     <text
                       x={px}
                       y={chartH - 8}
@@ -272,7 +268,7 @@ export default function DebriefDashboard({
                       fill="rgb(148 163 184)"
                       fontSize="10"
                     >
-                      {p.x}
+                      {p.label}
                     </text>
                   </g>
                 );
@@ -287,13 +283,10 @@ export default function DebriefDashboard({
             onClick={() => onReturn?.()}
             className="rounded-xl border border-slate-600 bg-transparent px-8 py-3 text-sm font-medium text-slate-100 transition-all duration-150 hover:border-slate-400 hover:bg-slate-900/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
-            Return to Lobby
+            {returnLabel}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-export { DEFAULT_HISTORY };
-

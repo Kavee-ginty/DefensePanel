@@ -4,6 +4,7 @@ export default function UserVideo({
   muted = false,
   videoOff = false,
   documentName = null,
+  pipMode = false,
   className = '',
 }) {
   const videoRef = useRef(null);
@@ -32,21 +33,23 @@ export default function UserVideo({
           videoRef.current.srcObject = stream;
         }
 
-        audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        const data = new Uint8Array(analyser.frequencyBinCount);
+        if (!pipMode) {
+          audioContext = new AudioContext();
+          const source = audioContext.createMediaStreamSource(stream);
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          source.connect(analyser);
+          const data = new Uint8Array(analyser.frequencyBinCount);
 
-        const tick = () => {
-          if (cancelled || !analyser) return;
-          analyser.getByteFrequencyData(data);
-          const avg = data.reduce((a, b) => a + b, 0) / data.length;
-          setIsSpeaking(avg > 18);
-          rafId = requestAnimationFrame(tick);
-        };
-        tick();
+          const tick = () => {
+            if (cancelled || !analyser) return;
+            analyser.getByteFrequencyData(data);
+            const avg = data.reduce((a, b) => a + b, 0) / data.length;
+            setIsSpeaking(avg > 18);
+            rafId = requestAnimationFrame(tick);
+          };
+          tick();
+        }
       } catch (err) {
         console.error('[UserVideo]', err);
         setError('Camera or microphone access denied.');
@@ -62,7 +65,7 @@ export default function UserVideo({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [pipMode]);
 
   useEffect(() => {
     const stream = streamRef.current;
@@ -80,14 +83,16 @@ export default function UserVideo({
     });
   }, [videoOff]);
 
-  const ringClass = isSpeaking
-    ? 'ring-cyan-400 shadow-[0_0_28px_rgba(34,211,238,0.45)] animate-pulse'
-    : 'ring-cyan-400/60 shadow-[0_0_18px_rgba(34,211,238,0.25)]';
+  const ringClass = pipMode
+    ? 'ring-2 ring-cyan-400/70 shadow-[0_0_18px_rgba(34,211,238,0.25)]'
+    : isSpeaking
+      ? 'ring-cyan-400 shadow-[0_0_28px_rgba(34,211,238,0.45)] animate-pulse'
+      : 'ring-cyan-400/60 shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-shadow duration-200';
 
   return (
     <div
       className={[
-        'relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-950 ring-2 transition-shadow duration-200',
+        'relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-950 ring-2',
         ringClass,
         className,
       ].join(' ')}
@@ -98,7 +103,7 @@ export default function UserVideo({
         playsInline
         muted
         className={[
-          'h-full w-full object-cover mirror',
+          'h-full w-full object-cover',
           videoOff ? 'opacity-0' : 'opacity-100',
         ].join(' ')}
         style={{ transform: 'scaleX(-1)' }}
@@ -113,7 +118,7 @@ export default function UserVideo({
           {error}
         </div>
       )}
-      {documentName && (
+      {documentName && !pipMode && (
         <div className="absolute left-3 top-3 max-w-[70%] truncate rounded-lg border border-white/10 bg-black/55 px-2 py-1 text-xs text-zinc-200 backdrop-blur-sm">
           {documentName}
         </div>
@@ -121,4 +126,3 @@ export default function UserVideo({
     </div>
   );
 }
-
