@@ -38,6 +38,15 @@ function formatMmSs(totalSeconds) {
 const THIRTY_SECOND_AVATAR_PROMPT =
   'SYSTEM TIMER NOTICE: Tell the candidate the interview will end in 30 seconds, ask for a concise final answer, and then wrap up gracefully. Do not end the session yourself.';
 
+const FIVE_SECOND_AVATAR_PROMPT =
+  'SYSTEM TIMER NOTICE: Tell the candidate they have only 5 seconds left — ask them to wrap up their final point now. Do not end the session yourself.';
+
+/** If the panel never speaks, start the goal timer anyway (LiveKit path). */
+const TIMER_SPEECH_FALLBACK_MS = 120_000;
+
+/** Iframe embed has no speech hook — shorter fallback after session starts. */
+const TIMER_IFRAME_FALLBACK_MS = 45_000;
+
 export default function SimulationArena({
   mode,
   documentFile = null,
@@ -49,9 +58,13 @@ export default function SimulationArena({
   const config = getModeConfig(mode);
   const showDocPreview = Boolean(documentFile);
   const sessionStartedAt = useRef(Date.now());
+  const defenseStartedAt = useRef(Date.now());
   const beyAgentRef = useRef(null);
   const startFinishTimeoutRef = useRef(null);
+  const timerRunningRef = useRef(false);
+  const timerEverStartedRef = useRef(false);
   const [started, setStarted] = useState(false);
+  const [timerRunning, setTimerRunning] = useState(false);
   const [startTransition, setStartTransition] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
@@ -64,6 +77,9 @@ export default function SimulationArena({
     return Math.max(0, mins * 60);
   });
   const thirtySecondWarningSentRef = useRef(false);
+  const fiveSecondWarningSentRef = useRef(false);
+
+  const usesLiveKitPanel = Boolean(agentId);
 
   const uiTotalSeconds = useMemo(() => {
     const mins = briefingSetup?.sessionMinutes ?? 5;
@@ -95,11 +111,29 @@ export default function SimulationArena({
     [config.panelists, agentId, agentEmbedUrl],
   );
 
+  const startInterviewTimer = useCallback(() => {
+    if (timerRunningRef.current) return;
+    timerRunningRef.current = true;
+    timerEverStartedRef.current = true;
+    sessionStartedAt.current = Date.now();
+    thirtySecondWarningSentRef.current = false;
+    fiveSecondWarningSentRef.current = false;
+    setRemainingSeconds(uiTotalSeconds);
+    setTimerRunning(true);
+  }, [uiTotalSeconds]);
+
+  const handleAvatarFirstSpeech = useCallback(() => {
+    startInterviewTimer();
+  }, [startInterviewTimer]);
+
   const handleEndConfirm = () => {
     setShowEndModal(false);
+    const anchor = timerEverStartedRef.current
+      ? sessionStartedAt.current
+      : defenseStartedAt.current;
     const durationSeconds = Math.max(
       1,
-      Math.round((Date.now() - sessionStartedAt.current) / 1000),
+      Math.round((Date.now() - anchor) / 1000),
     );
     onEndSession?.({
       durationSeconds,
@@ -114,8 +148,12 @@ export default function SimulationArena({
       window.clearTimeout(startFinishTimeoutRef.current);
     }
     startFinishTimeoutRef.current = window.setTimeout(() => {
-      sessionStartedAt.current = Date.now();
+      defenseStartedAt.current = Date.now();
+      timerRunningRef.current = false;
+      timerEverStartedRef.current = false;
       thirtySecondWarningSentRef.current = false;
+      fiveSecondWarningSentRef.current = false;
+      setTimerRunning(false);
       setRemainingSeconds(uiTotalSeconds);
       setStarted(true);
       setStartTransition(false);
@@ -132,20 +170,36 @@ export default function SimulationArena({
   }, []);
 
   useEffect(() => {
-    if (!started) return undefined;
+    if (!started || timerRunning) return undefined;
+
+    const fallbackMs = usesLiveKitPanel
+      ? TIMER_SPEECH_FALLBACK_MS
+      : TIMER_IFRAME_FALLBACK_MS;
+    const id = window.setTimeout(() => {
+      startInterviewTimer();
+    }, fallbackMs);
+
+    return () => window.clearTimeout(id);
+  }, [started, timerRunning, usesLiveKitPanel, startInterviewTimer]);
+
+  useEffect(() => {
+    if (!started || !timerRunning) return undefined;
 
     const tick = () => {
       const elapsedSec = (Date.now() - sessionStartedAt.current) / 1000;
       const rem = Math.max(0, Math.floor(uiTotalSeconds - elapsedSec));
       setRemainingSeconds(rem);
 
-      if (
-        rem > 0 &&
-        rem <= 30 &&
-        !thirtySecondWarningSentRef.current
-      ) {
+      const api = beyAgentRef.current;
+      if (rem > 0 && rem <= 5 && !fiveSecondWarningSentRef.current) {
+        fiveSecondWarningSentRef.current = true;
+        if (api?.sendMessage) {
+          void api.sendMessage(FIVE_SECOND_AVATAR_PROMPT).catch(() => {});
+        }
+      }
+
+      if (rem > 0 && rem <= 30 && !thirtySecondWarningSentRef.current) {
         thirtySecondWarningSentRef.current = true;
-        const api = beyAgentRef.current;
         if (api?.sendMessage) {
           void api.sendMessage(THIRTY_SECOND_AVATAR_PROMPT).catch(() => {});
         }
@@ -155,7 +209,7 @@ export default function SimulationArena({
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, [started, uiTotalSeconds]);
+  }, [started, timerRunning, uiTotalSeconds]);
 
   const handleSendChat = useCallback(
     async (e) => {
@@ -198,33 +252,41 @@ export default function SimulationArena({
     </div>
   );
 
-  const timerRingProgress =
-    started && remainingSeconds > 0
+  const timerWaiting = started && !timerRunning;
+  const timerRingProgress = timerWaiting
+    ? 1
+    : started && remainingSeconds > 0
       ? remainingSeconds / uiTotalSeconds
       : started
         ? 0
         : 1;
   const dashOffset = TIMER_CIRC * (1 - timerRingProgress);
   const timerUrgent =
-    started && remainingSeconds > 0 && remainingSeconds <= 30;
-  const timerExpired = started && remainingSeconds <= 0;
+    timerRunning && remainingSeconds > 0 && remainingSeconds <= 30;
+  const timerFinalSeconds =
+    timerRunning && remainingSeconds > 0 && remainingSeconds <= 5;
+  const timerExpired = timerRunning && remainingSeconds <= 0;
 
   const liveAndTimer = started && (
     <div
       className={[
         'absolute left-3 top-2 z-10 flex items-center gap-3 rounded-2xl border px-3 py-2.5 backdrop-blur-sm sm:left-4 sm:top-3',
-        timerUrgent
-          ? 'border-red-500/50 bg-red-950/50'
-          : timerExpired
-            ? 'border-amber-500/40 bg-amber-950/70'
-            : 'border-white/10 bg-black/55',
+        timerWaiting
+          ? 'border-cyan-500/35 bg-cyan-950/40'
+          : timerUrgent || timerFinalSeconds
+            ? 'border-red-500/50 bg-red-950/50'
+            : timerExpired
+              ? 'border-amber-500/40 bg-amber-950/70'
+              : 'border-white/10 bg-black/55',
       ].join(' ')}
       role="timer"
       aria-live="polite"
       aria-label={
-        remainingSeconds <= 0
-          ? 'Interview goal time reached'
-          : `Time remaining: ${formatMmSs(remainingSeconds)}`
+        timerWaiting
+          ? 'Waiting for panelist to begin'
+          : remainingSeconds <= 0
+            ? 'Interview goal time reached'
+            : `Time remaining: ${formatMmSs(remainingSeconds)}`
       }
     >
       <div className="relative h-11 w-11 shrink-0">
@@ -252,17 +314,23 @@ export default function SimulationArena({
             strokeDashoffset={dashOffset}
             className={[
               'transition-[stroke-dashoffset] duration-1000 ease-linear',
-              timerExpired
-                ? 'stroke-amber-400/80'
-                : timerUrgent
-                  ? 'stroke-red-500'
-                  : 'stroke-cyan-400',
+              timerWaiting
+                ? 'stroke-cyan-400/60'
+                : timerExpired
+                  ? 'stroke-amber-400/80'
+                  : timerUrgent || timerFinalSeconds
+                    ? 'stroke-red-500'
+                    : 'stroke-cyan-400',
             ].join(' ')}
           />
         </svg>
       </div>
       <div className="flex min-w-0 flex-col">
-        {remainingSeconds <= 0 ? (
+        {timerWaiting ? (
+          <span className="text-xs font-medium text-cyan-100">
+            Waiting for panelist…
+          </span>
+        ) : remainingSeconds <= 0 ? (
           <span className="text-xs font-medium text-amber-100">
             Time reached — wrap up when ready
           </span>
@@ -270,7 +338,7 @@ export default function SimulationArena({
           <span
             className={[
               'font-mono text-lg font-semibold tabular-nums leading-none',
-              timerUrgent ? 'text-red-200' : 'text-zinc-100',
+              timerUrgent || timerFinalSeconds ? 'text-red-200' : 'text-zinc-100',
             ].join(' ')}
           >
             {formatMmSs(remainingSeconds)}
@@ -279,10 +347,20 @@ export default function SimulationArena({
         <span
           className={[
             'mt-1 text-[10px] font-medium uppercase tracking-wider',
-            timerUrgent ? 'text-red-400/90' : 'text-zinc-500',
+            timerWaiting
+              ? 'text-cyan-400/80'
+              : timerUrgent || timerFinalSeconds
+                ? 'text-red-400/90'
+                : 'text-zinc-500',
           ].join(' ')}
         >
-          {remainingSeconds <= 0 ? 'Goal time' : 'Remaining'}
+          {timerWaiting
+            ? 'Timer paused'
+            : remainingSeconds <= 0
+              ? 'Goal time'
+              : timerFinalSeconds
+                ? 'Wrap up'
+                : 'Remaining'}
         </span>
       </div>
     </div>
@@ -313,6 +391,7 @@ export default function SimulationArena({
               muted={muted}
               label={panel.label}
               fillHeight
+              onAvatarFirstSpeech={handleAvatarFirstSpeech}
             />
           ) : (
             <BeyPanelFrame

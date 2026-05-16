@@ -26,6 +26,7 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
     muted = false,
     fillHeight = false,
     className = '',
+    onAvatarFirstSpeech = null,
   },
   ref,
 ) {
@@ -33,6 +34,12 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
   const audioRef = useRef(null);
   const roomRef = useRef(null);
   const localAudioTrackRef = useRef(null);
+  const firstSpeechFiredRef = useRef(false);
+  const onAvatarFirstSpeechRef = useRef(onAvatarFirstSpeech);
+
+  useEffect(() => {
+    onAvatarFirstSpeechRef.current = onAvatarFirstSpeech;
+  }, [onAvatarFirstSpeech]);
 
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState(null);
@@ -118,9 +125,11 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
       setConnecting(false);
       setError(null);
       setHasRemoteVideo(false);
+      firstSpeechFiredRef.current = false;
       return;
     }
 
+    firstSpeechFiredRef.current = false;
     let cancelled = false;
     const room = new Room({
       adaptiveStream: true,
@@ -141,9 +150,21 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
       wireParticipant(participant);
     };
 
+    const notifyFirstSpeech = () => {
+      if (firstSpeechFiredRef.current || cancelled) return;
+      firstSpeechFiredRef.current = true;
+      onAvatarFirstSpeechRef.current?.();
+    };
+
+    const onActiveSpeakersChanged = (speakers) => {
+      const remoteSpeaking = speakers.some((p) => !p.isLocal);
+      if (remoteSpeaking) notifyFirstSpeech();
+    };
+
     room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
     room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
     room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+    room.on(RoomEvent.ActiveSpeakersChanged, onActiveSpeakersChanged);
 
     const run = async () => {
       setConnecting(true);

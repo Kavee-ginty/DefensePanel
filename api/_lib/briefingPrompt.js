@@ -46,6 +46,11 @@ const GOAL_LINES = {
 
 const MAX_COMPOSED_SYSTEM_PROMPT = 14_000
 
+const OPENING_PHASE_INSTRUCTIONS = `OPENING PHASE (mandatory — always follow at session start):
+- Your very first spoken turn after the candidate joins: confirm you are ready and ask them to briefly explain their project in their own words (about 60–90 seconds).
+- Do NOT ask document-specific, technical, or challenge questions until they finish that overview.
+- After they complete the overview, acknowledge briefly and begin targeted questions one at a time.`
+
 /**
  * @typedef {{
  *   difficulty: 'friendly'|'standard'|'brutal',
@@ -179,6 +184,8 @@ export function composeAgentSystemPrompt(p) {
   if (pref) {
     blocks.push('\n\n' + pref)
   }
+
+  blocks.push('\n\n' + OPENING_PHASE_INSTRUCTIONS)
 
   let out = blocks.join('')
   if (out.length > MAX_COMPOSED_SYSTEM_PROMPT) {
