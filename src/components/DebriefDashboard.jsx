@@ -139,7 +139,7 @@ export default function DebriefDashboard({
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 px-4 py-10 font-sans text-slate-50 print:bg-white print:px-0 print:py-4 print:text-slate-950">
+    <div className="relative min-h-screen bg-slate-950 px-6 py-12 font-sans text-slate-50 lg:px-10 lg:py-14 print:bg-white print:px-0 print:py-2 print:text-slate-950">
       <div
         className="pointer-events-none fixed bottom-6 right-6 text-slate-600/80 no-print print:hidden"
         aria-hidden
@@ -149,26 +149,26 @@ export default function DebriefDashboard({
 
       <div
         id="debrief-print-root"
-        className="mx-auto max-w-4xl space-y-8 print:max-w-none"
+        className="mx-auto max-w-6xl space-y-8 print:max-w-none print:space-y-2"
       >
         <header className="text-center">
           <h1 className="text-3xl font-bold tracking-tight print:text-2xl">
             {headerTitle}
           </h1>
           {scenario && (
-            <p className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-500 print:text-slate-600">
+            <p className="mt-1 text-sm font-medium uppercase tracking-wider text-slate-500 print:text-[10px] print:text-slate-700">
               {scenario}
             </p>
           )}
           {subtitle && (
-            <p className="mt-2 text-sm text-slate-400 print:text-slate-600">
+            <p className="mt-2 text-base text-slate-400 print:text-xs print:text-slate-600">
               {subtitle}
             </p>
           )}
         </header>
 
         {progress != null && progress.deltaPct != null && (
-          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-center text-sm text-cyan-100 print:border-slate-300 print:bg-slate-100 print:text-slate-800">
+          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-center text-sm text-cyan-100 print:border-slate-300 print:bg-slate-100 print:px-3 print:py-2 print:text-xs print:text-slate-800">
             {progress.deltaPct >= 0 ? 'You improved ' : 'Overall score changed by '}
             <span className="font-semibold tabular-nums text-cyan-50 print:text-slate-900">
               {progress.deltaPct >= 0
@@ -185,12 +185,12 @@ export default function DebriefDashboard({
 
         <div
           className={[
-            'grid grid-cols-1 gap-4 md:grid-cols-3',
+            'grid grid-cols-1 gap-4 md:grid-cols-3 print:gap-2',
             isLoading ? 'animate-pulse opacity-80' : '',
           ].join(' ')}
         >
-          <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-emerald-950/50 to-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 print:text-slate-600">
+          <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-emerald-950/50 to-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4 print:py-3">
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-400 print:text-[10px] print:text-slate-700">
               Overall score
             </p>
             <p className="mt-2 text-4xl font-semibold tabular-nums text-green-400 drop-shadow-[0_0_12px_rgba(74,222,128,0.35)] print:text-emerald-700 print:drop-shadow-none">
@@ -198,25 +198,25 @@ export default function DebriefDashboard({
             </p>
           </div>
 
-          <div className="relative rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md print:border-slate-200 print:bg-white">
+          <div className="relative rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md print:border-slate-200 print:bg-white print:p-4 print:py-3">
             <AlertTriangle
               className="absolute right-4 top-4 h-4 w-4 text-amber-500 print:hidden"
               strokeWidth={2}
               aria-hidden
             />
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 print:text-slate-600">
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-400 print:text-[10px] print:text-slate-700">
               Filler words
             </p>
             <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-50 print:text-slate-900">
               {fillerDisplay}
             </p>
-            <p className="mt-1 text-xs text-slate-500 print:text-slate-600">
+            <p className="mt-1 text-sm text-slate-500 print:text-[10px] print:text-slate-600">
               Total count: {fillerWordCount}
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md print:border-slate-200 print:bg-white">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 print:text-slate-600">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md print:border-slate-200 print:bg-white print:p-4 print:py-3">
+            <p className="text-sm font-medium uppercase tracking-wider text-slate-400 print:text-[10px] print:text-slate-700">
               Duration
             </p>
             <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-50 print:text-slate-900">
@@ -225,25 +225,25 @@ export default function DebriefDashboard({
           </div>
         </div>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50">
-          <h2 className="text-lg font-semibold tracking-tight print:text-base">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4">
+          <h2 className="text-lg font-semibold tracking-tight print:mb-1 print:text-sm">
             Scoring breakdown
           </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 print:mt-2 print:gap-2">
             {RUBRIC_KEYS.map(({ key, label }) => (
               <div
                 key={key}
-                className="rounded-xl border border-slate-700/80 bg-slate-950/40 p-4 print:border-slate-200 print:bg-white"
+                className="rounded-xl border border-slate-700/80 bg-slate-950/40 p-4 print:border-slate-200 print:bg-white print:p-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-400 print:text-[10px] print:text-slate-700">
                     {label}
                   </p>
-                  <p className="text-lg font-bold tabular-nums text-cyan-300 print:text-slate-900">
+                  <p className="text-lg font-bold tabular-nums text-cyan-300 print:text-base print:text-slate-900">
                     {rubricScores[key]}/100
                   </p>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800 print:bg-slate-200">
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800 print:mt-1 print:bg-slate-200">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 print:from-slate-700 print:to-slate-700"
                     style={{ width: `${rubricScores[key]}%` }}
@@ -254,7 +254,7 @@ export default function DebriefDashboard({
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-2 print:gap-2">
           {[
             {
               title: 'Strengths',
@@ -284,16 +284,16 @@ export default function DebriefDashboard({
             <div
               key={title}
               className={[
-                'rounded-xl border bg-gradient-to-br p-5 backdrop-blur-md',
+                'rounded-xl border bg-gradient-to-br p-5 backdrop-blur-md print:p-4',
                 border,
                 bg,
                 'print:border-slate-200 print:bg-white',
               ].join(' ')}
             >
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300 print:text-slate-800">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300 print:text-[11px] print:text-slate-800">
                 {title}
               </h2>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-slate-200 print:text-slate-800">
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-slate-200 print:mt-2 print:space-y-0.5 print:text-[11px] print:leading-snug print:text-slate-800">
                 {items?.length ? (
                   items.map((line, i) => (
                     <li key={i}>{line}</li>
@@ -308,11 +308,11 @@ export default function DebriefDashboard({
           ))}
         </section>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50">
-          <h2 className="text-lg font-semibold tracking-tight print:text-base">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4">
+          <h2 className="text-lg font-semibold tracking-tight print:text-sm">
             Critical feedback
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-200 print:text-slate-800">
+          <p className="mt-3 text-base leading-relaxed text-slate-200 print:mt-2 print:text-[11px] print:leading-snug print:text-slate-800">
             {criticalFeedback ||
               'No feedback recorded for this session.'}
           </p>
@@ -320,26 +320,26 @@ export default function DebriefDashboard({
 
         <section
           className={[
-            'rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50',
+            'rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4',
             isLoading ? 'animate-pulse' : '',
           ].join(' ')}
         >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-tight print:text-base">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:mb-2">
+            <h2 className="text-lg font-semibold tracking-tight print:text-sm">
               Score trend (last {history.length} sessions)
               {isLoading && (
-                <span className="ml-2 text-xs font-normal text-slate-500">
+                <span className="ml-2 text-sm font-normal text-slate-500 print:text-[10px]">
                   Updating…
                 </span>
               )}
             </h2>
-            <span className="flex items-center gap-2 text-xs text-slate-400 print:text-slate-600">
+            <span className="flex items-center gap-2 text-sm text-slate-400 print:text-[10px] print:text-slate-600">
               <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] print:shadow-none" />
               Overall score
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="debrief-chart-print overflow-x-auto print:overflow-visible">
             <svg
               viewBox={`0 0 ${chartW} ${chartH}`}
               className="h-auto w-full min-w-[520px] print:min-w-0"

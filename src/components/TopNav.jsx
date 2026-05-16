@@ -27,8 +27,8 @@ export default function TopNav({
   showDevNav = false,
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
+    <header className="no-print fixed inset-x-0 top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
         <button
           type="button"
           onClick={() => onNavigate?.('home')}
@@ -77,7 +77,7 @@ export default function TopNav({
 
       {showDevNav && (
         <div className="border-t border-zinc-800/60 bg-zinc-950/95 px-4 py-2">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-2">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2">
             <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
               Dev preview
             </span>

@@ -123,7 +123,7 @@ export default function SimulationArena({
       </div>
       {rehearsalHint}
 
-      <div className="mx-auto flex h-[calc(100dvh-4.75rem)] max-h-[calc(100dvh-4.75rem)] max-w-7xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
+      <div className="mx-auto flex h-[calc(100dvh-4.75rem)] max-h-[calc(100dvh-4.75rem)] max-w-6xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
         <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
           {showDocPreview ? (
             <PdfPresentationView file={documentFile} arena />

@@ -179,42 +179,47 @@ export default function ContextUpload({
 
   return (
     <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50">
-      <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-16">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-14 text-[17px] leading-relaxed lg:justify-center lg:py-16">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="mb-4 flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200"
+            className="mb-6 flex items-center gap-2 text-[15px] text-zinc-400 hover:text-zinc-200 sm:text-base lg:mb-8"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Back to lobby
           </button>
         )}
 
-        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-8 shadow-xl backdrop-blur-md">
-          <p className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-blue-400/90">
-            {config.title} · Briefing
-          </p>
-          <h1 className="text-center text-2xl font-bold tracking-tight">
-            {resolvedTitle}
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-zinc-400">
-            {resolvedDescription}
-          </p>
-
-          <section className="mt-10 border-t border-zinc-800/70 pt-8 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-400/90">
-              Pre-session setup
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-8 text-[17px] leading-relaxed shadow-xl backdrop-blur-md lg:p-10">
+          <header className="border-b border-zinc-800/70 pb-8 text-center">
+            <p className="mb-2 text-base font-medium uppercase tracking-wider text-blue-400/90">
+              {config.title} · Briefing
             </p>
-            <p className="mt-1 max-w-xl text-xs text-zinc-500">
-              Optional preferences for rehearsal context. These controls do not alter
-              the agent embed call — purely for UX and pacing.
+            <h1 className="text-[1.875rem] font-bold tracking-tight lg:text-[2.125rem]">
+              {resolvedTitle}
+            </h1>
+            <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-zinc-400">
+              {resolvedDescription}
             </p>
+          </header>
 
-            <div className="mt-6 space-y-8">
+          <div className="mt-8 grid grid-cols-1 gap-10 lg:mt-10 lg:grid-cols-2 lg:gap-10 lg:items-start">
+            {/* Left: setup controls */}
+            <section className="space-y-8 text-left">
               <div>
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-400/90">
+                  Pre-session setup
+                </p>
+                <p className="mt-1 max-w-xl text-[15px] text-zinc-500 sm:text-base">
+                  Optional preferences for rehearsal context. These controls do not alter
+                  the agent embed call — purely for UX and pacing.
+                </p>
+              </div>
+
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-[15px] font-semibold uppercase tracking-wide text-zinc-500 sm:text-base">
+                  <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
                   Difficulty
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -224,7 +229,7 @@ export default function ContextUpload({
                       type="button"
                       onClick={() => mergeSetup({ difficulty: did })}
                       className={[
-                        'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                        'rounded-lg px-4 py-2 text-[15px] font-medium transition-colors sm:text-base',
                         difficulty === did
                           ? 'bg-blue-600 text-white ring-2 ring-blue-400/70'
                           : 'border border-zinc-700 bg-zinc-900/60 text-zinc-300 hover:border-zinc-500',
@@ -237,8 +242,8 @@ export default function ContextUpload({
               </div>
 
               <div>
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  <Timer className="h-3.5 w-3.5" aria-hidden />
+                <div className="mb-3 flex items-center gap-2 text-[15px] font-semibold uppercase tracking-wide text-zinc-500 sm:text-base">
+                  <Timer className="h-4 w-4 shrink-0" aria-hidden />
                   Session time (minutes)
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -248,7 +253,7 @@ export default function ContextUpload({
                       type="button"
                       onClick={() => mergeSetup({ sessionMinutes: mins })}
                       className={[
-                        'min-w-[3.25rem] rounded-lg px-3 py-2 text-sm font-semibold tabular-nums transition-colors',
+                        'min-w-[3.25rem] rounded-lg px-3 py-2 text-[15px] font-semibold tabular-nums transition-colors sm:text-base',
                         sessionMinutes === mins
                           ? 'bg-cyan-600 text-white ring-2 ring-cyan-400/60'
                           : 'border border-zinc-700 bg-zinc-900/60 text-zinc-300 hover:border-zinc-500',
@@ -261,8 +266,8 @@ export default function ContextUpload({
               </div>
 
               <div>
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  <Users className="h-3.5 w-3.5" aria-hidden />
+                <div className="mb-3 flex items-center gap-2 text-[15px] font-semibold uppercase tracking-wide text-zinc-500 sm:text-base">
+                  <Users className="h-4 w-4 shrink-0" aria-hidden />
                   Panel personas
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -272,7 +277,7 @@ export default function ContextUpload({
                       type="button"
                       onClick={() => mergeSetup({ panelPersona: pid })}
                       className={[
-                        'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                        'rounded-lg px-4 py-2 text-[15px] font-medium transition-colors sm:text-base',
                         panelPersona === pid
                           ? 'bg-violet-600 text-white ring-2 ring-violet-400/60'
                           : 'border border-zinc-700 bg-zinc-900/60 text-zinc-300 hover:border-zinc-500',
@@ -285,14 +290,14 @@ export default function ContextUpload({
               </div>
 
               <div>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <p className="mb-3 text-[15px] font-semibold uppercase tracking-wide text-zinc-500 sm:text-base">
                   Practice goals
                 </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {PRACTICE_GOALS.map(({ id: gid, label }) => (
                     <label
                       key={gid}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-3 text-sm text-zinc-200 hover:border-zinc-600"
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-3 text-[15px] text-zinc-200 hover:border-zinc-600 sm:text-base"
                     >
                       <input
                         type="checkbox"
@@ -305,6 +310,107 @@ export default function ContextUpload({
                   ))}
                 </div>
               </div>
+            </section>
+
+            {/* Right: materials + vision */}
+            <div className="space-y-6 border-t border-zinc-800/70 pt-8 lg:border-l lg:border-t-0 lg:border-zinc-800/70 lg:pl-10 lg:pt-0">
+              <div className="text-left">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-400/90">
+                  Materials
+                </p>
+                <p className="mt-1 max-w-xl text-[15px] text-zinc-500 sm:text-base">
+                  Upload one document to anchor the simulation context before you deploy.
+                </p>
+              </div>
+
+              <label
+                htmlFor={inputId}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    setIsDragging(false);
+                  }
+                }}
+                onDrop={onDrop}
+                className={[
+                  'flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-all duration-150',
+                  'focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:ring-offset-zinc-950',
+                  isDragging
+                    ? 'border-blue-500 bg-blue-500/5'
+                    : 'border-zinc-800/80 bg-zinc-900/50 hover:border-zinc-500',
+                ].join(' ')}
+              >
+                <input
+                  ref={inputRef}
+                  id={inputId}
+                  type="file"
+                  accept={config.accept}
+                  className="sr-only"
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+                <Upload
+                  className="h-10 w-10 text-zinc-500"
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
+                <span className="mt-3 text-lg font-medium text-zinc-200">
+                  {config.uploadHint}
+                </span>
+                <span className="mt-1 text-[15px] text-zinc-500 sm:text-base">
+                  {config.dropzoneSubtext}
+                </span>
+              </label>
+
+              {file && (
+                <div
+                  className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-4 py-3"
+                  role="status"
+                >
+                  <FileText
+                    className="h-5 w-5 shrink-0 text-zinc-300"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-zinc-100 sm:text-base">
+                    {file.name}
+                  </span>
+                  {isExtracting ? (
+                    <>
+                      <Loader2
+                        className="h-5 w-5 shrink-0 animate-spin text-blue-400"
+                        aria-hidden
+                      />
+                      <span className="sr-only">Extracting text</span>
+                    </>
+                  ) : (
+                    <Check
+                      className="h-5 w-5 shrink-0 text-green-400"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={clearFile}
+                    disabled={isExtracting}
+                    className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:pointer-events-none disabled:opacity-40"
+                    aria-label="Remove file"
+                  >
+                    <X className="h-5 w-5" strokeWidth={2} aria-hidden />
+                  </button>
+                </div>
+              )}
+
+              {file && isExtracting && (
+                <p className="text-center text-[15px] text-zinc-500 sm:text-base">
+                  Extracting text…
+                </p>
+              )}
 
               <label className="flex cursor-pointer flex-col gap-3 rounded-xl border border-amber-500/35 bg-amber-500/[0.07] px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
                 <span className="flex items-start gap-3">
@@ -313,7 +419,7 @@ export default function ContextUpload({
                     <span className="font-medium text-zinc-100">
                       Vision mode
                     </span>
-                    <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
+                    <span className="mt-1 block text-[15px] leading-relaxed text-zinc-500 sm:text-base">
                       Enables camera-focused rehearsal when your environment supports it —
                       demo note: may add latency vs lean audio-only runs.
                     </span>
@@ -328,117 +434,30 @@ export default function ContextUpload({
                 />
               </label>
             </div>
-          </section>
-
-          <label
-            htmlFor={inputId}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              if (!e.currentTarget.contains(e.relatedTarget)) {
-                setIsDragging(false);
-              }
-            }}
-            onDrop={onDrop}
-            className={[
-              'mt-8 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-all duration-150',
-              'focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:ring-offset-zinc-950',
-              isDragging
-                ? 'border-blue-500 bg-blue-500/5'
-                : 'border-zinc-800/80 bg-zinc-900/50 hover:border-zinc-500',
-            ].join(' ')}
-          >
-            <input
-              ref={inputRef}
-              id={inputId}
-              type="file"
-              accept={config.accept}
-              className="sr-only"
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-            <Upload
-              className="h-10 w-10 text-zinc-500"
-              strokeWidth={1.75}
-              aria-hidden
-            />
-            <span className="mt-3 text-sm font-medium text-zinc-200">
-              {config.uploadHint}
-            </span>
-            <span className="mt-1 text-xs text-zinc-500">
-              {config.dropzoneSubtext}
-            </span>
-          </label>
-
-          {file && (
-            <div
-              className="mt-4 flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-4 py-3"
-              role="status"
-            >
-              <FileText
-                className="h-5 w-5 shrink-0 text-zinc-300"
-                strokeWidth={2}
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100">
-                {file.name}
-              </span>
-              {isExtracting ? (
-                <>
-                  <Loader2
-                    className="h-5 w-5 shrink-0 animate-spin text-blue-400"
-                    aria-hidden
-                  />
-                  <span className="sr-only">Extracting text</span>
-                </>
-              ) : (
-                <Check
-                  className="h-5 w-5 shrink-0 text-green-400"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-              )}
-              <button
-                type="button"
-                onClick={clearFile}
-                disabled={isExtracting}
-                className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 disabled:pointer-events-none disabled:opacity-40"
-                aria-label="Remove file"
-              >
-                <X className="h-5 w-5" strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-          )}
-
-          {file && isExtracting && (
-            <p className="mt-2 text-center text-xs text-zinc-500">
-              Extracting text…
-            </p>
-          )}
+          </div>
 
           {(error || localError) && (
             <p
-              className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm text-red-300"
+              className="mt-8 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-base text-red-300"
               role="alert"
             >
               {error || localError}
             </p>
           )}
 
-          <button
-            type="button"
-            disabled={isLoading || isDeploying || !file || isExtracting}
-            onClick={handleDeploy}
-            className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-colors duration-150 hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
-          >
-            {(isLoading || isDeploying) && (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            )}
-            {buttonLabel}
-          </button>
+          <div className="mt-10 flex justify-center border-t border-zinc-800/70 pt-10 lg:mt-12 lg:pt-12">
+            <button
+              type="button"
+              disabled={isLoading || isDeploying || !file || isExtracting}
+              onClick={handleDeploy}
+              className="flex w-full max-w-lg items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-lg font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-colors duration-150 hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
+            >
+              {(isLoading || isDeploying) && (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              )}
+              {buttonLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>

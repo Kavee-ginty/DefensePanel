@@ -344,7 +344,7 @@ export default function App() {
           return (
             <>
               {sessionError && (
-                <div className="mx-auto max-w-4xl px-4 pt-4">
+                <div className="mx-auto max-w-6xl px-4 pt-4">
                   <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-200">
                     {sessionError} — showing local debrief only.
                   </p>
