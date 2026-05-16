@@ -103,6 +103,41 @@ export async function startSession(payload) {
 }
 
 /**
+ * Create a Beyond Presence managed-agent call and get LiveKit join credentials.
+ *
+ * @param {string} agentId Beyond Presence agent id (from `/api/start-session`)
+ * @param {Record<string, string>} [tags] Optional tags for BP dashboard / analytics
+ * @returns {Promise<{ success: true, call_id: string | null, livekit_url: string, livekit_token: string }>}
+ */
+export async function startCall(agentId, tags) {
+  try {
+    if (!agentId?.trim()) {
+      throw new Error('agent_id is required');
+    }
+    const body = { agent_id: agentId.trim() };
+    if (tags && typeof tags === 'object' && !Array.isArray(tags)) {
+      body.tags = tags;
+    }
+
+    const res = await fetch('/api/start-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await readJson(res);
+    if (!res.ok || !data?.success) {
+      const msg = data?.error || `Start call failed (${res.status})`;
+      throw new Error(msg);
+    }
+    return data;
+  } catch (err) {
+    console.error('[sessionApi] startCall failed', err);
+    toast.error(err.message || 'Could not start call');
+    throw err;
+  }
+}
+
+/**
  * @param {{
  *   transcript_text?: string,
  *   agent_id?: string | null,

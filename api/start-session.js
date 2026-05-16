@@ -11,6 +11,39 @@ const DEV_LOGGING =
   (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') ||
   process.env.NODE_ENV !== 'production'
 
+/** @param {unknown} value */
+function preview50(value) {
+  const s = String(value ?? '')
+  return s.length <= 50 ? s : `${s.slice(0, 50)}…`
+}
+
+/**
+ * Beyond-facing merged role block + optional conversational flow (essentials.md).
+ * @param {string} systemPrompt
+ * @param {string} conversationFlow
+ */
+function mergeEssentialsRoleAndFlow(systemPrompt, conversationFlow) {
+  const role = String(systemPrompt || '').trim()
+  const flow = String(conversationFlow || '').trim()
+  let out = `[ROLE & OBJECTIVE]\n${role}`
+  if (flow) out += `\n\n[CONVERSATIONAL FLOW]\n${flow}`
+  return out
+}
+
+/**
+ * @param {string} rawMaxSessionLength
+ * @param {ReturnType<typeof parseBriefingSetup>} briefingSetup
+ */
+function resolveMaxSessionMinutes(rawMaxSessionLength, briefingSetup) {
+  const raw = String(rawMaxSessionLength ?? '').trim()
+  if (raw) {
+    const n = Number.parseInt(raw, 10)
+    return Number.isFinite(n) && n > 0 ? n : 5
+  }
+  if (briefingSetup?.sessionMinutes != null) return briefingSetup.sessionMinutes
+  return 5
+}
+
 /** @param {string} label @param {unknown} agent */
 function logAgentKeys(label, agent) {
   if (!DEV_LOGGING) return
@@ -51,6 +84,13 @@ function getField(fields, name) {
  * @returns {Promise<unknown>}
  */
 async function createAgentRequest(body) {
+  if (DEV_LOGGING) {
+    console.log(
+      '[start-session] Beyond request body:',
+      JSON.stringify(body, null, 2),
+    )
+  }
+
   const response = await fetch(BEYOND_AGENTS_URL, {
     method: 'POST',
     headers: {
@@ -60,22 +100,57 @@ async function createAgentRequest(body) {
     body: JSON.stringify(body),
   })
 
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    console.error('Beyond Presence agent creation failed', payload)
-    const extra =
-      payload && typeof payload === 'object'
-        ? JSON.stringify(payload)
-        : String(payload ?? '')
-    const err = new Error(
-      payload?.error?.message ||
-        payload?.message ||
-        (extra !== '{}' && extra !== 'null'
-          ? `Beyond Presence ${response.status}: ${extra}`
-          : `Beyond Presence failed with ${response.status}`),
+  const rawText = await response.text()
+
+  if (DEV_LOGGING) {
+    const clipped =
+      rawText.length > 4000 ? `${rawText.slice(0, 4000)}…` : rawText
+    console.log(
+      `[start-session] Beyond response status=${response.status} bytes=${rawText.length}`,
+      clipped,
     )
+  }
+
+  /** @type {unknown} */
+  let payload = null
+  const trimmed = rawText.trim()
+  if (trimmed) {
+    try {
+      payload = JSON.parse(trimmed)
+    } catch {
+      payload = { _nonJsonBody: true, raw: trimmed }
+    }
+  }
+
+  if (!response.ok) {
+    console.error(
+      'Beyond Presence agent creation failed',
+      payload ?? rawText ?? '(empty)',
+    )
+
+    let message = `Beyond Presence failed with ${response.status}`
+    if (payload && typeof payload === 'object' && '_nonJsonBody' in payload) {
+      const raw = /** @type {{ raw?: string }} */ (payload).raw
+      if (raw) message = `Beyond Presence ${response.status}: ${raw}`
+    } else if (payload && typeof payload === 'object') {
+      const p = /** @type {{ error?: { message?: string }; message?: string }} */ (
+        payload
+      )
+      message =
+        p?.error?.message ||
+        p?.message ||
+        JSON.stringify(payload)
+    } else if (typeof payload === 'string') {
+      message = payload
+    }
+
+    const err = new Error(message)
     Object.assign(err, { status: response.status })
     throw err
+  }
+
+  if (DEV_LOGGING && payload && typeof payload === 'object') {
+    console.log('[start-session] Beyond parsed keys:', Object.keys(payload))
   }
 
   return payload
@@ -87,21 +162,36 @@ async function createAgentRequest(body) {
  *   name: string
  *   system_prompt: string
  *   greeting: string
+ *   conversational_flow?: string
+ *   starting_script?: string
  *   max_session_length_minutes?: number
  * }} opts
  */
 async function createAgent(opts) {
-  const { avatar_id, name, system_prompt, greeting, max_session_length_minutes } =
-    opts
+  const {
+    avatar_id,
+    name,
+    system_prompt,
+    greeting,
+    conversational_flow,
+    starting_script,
+    max_session_length_minutes,
+  } = opts
 
   const baseBody = {
     avatar_id,
     name,
     system_prompt: String(system_prompt).trim(),
   }
-  if (greeting && String(greeting).trim()) {
-    baseBody.greeting = String(greeting).trim()
-  }
+
+  const cf = String(conversational_flow ?? '').trim()
+  if (cf) baseBody.conversational_flow = cf
+
+  const ss = String(starting_script ?? '').trim()
+  if (ss) baseBody.starting_script = ss
+
+  const greet = String(greeting ?? '').trim()
+  if (greet) baseBody.greeting = greet
 
   if (
     typeof max_session_length_minutes === 'number' &&
@@ -143,11 +233,13 @@ export default async function handler(req, res) {
     const contentType = req.headers['content-type'] || ''
     let system_prompt = ''
     let greeting = ''
-    let name = `agent-${Date.now()}`
+    let name = `defense-panel-${Date.now()}`
     let briefingSetupRaw = ''
     let role_objectives = ''
     let conversation_flow_structure = ''
+    let conversation_flow_field = ''
     let starting_script = ''
+    let max_session_length_raw = ''
 
     if (contentType.includes('multipart/form-data')) {
       const { fields } = await parseForm(req)
@@ -157,11 +249,13 @@ export default async function handler(req, res) {
       if (nameField) name = nameField
       briefingSetupRaw = getField(fields, 'briefing_setup')
       role_objectives = getField(fields, 'role_objectives')
+      conversation_flow_field = getField(fields, 'conversation_flow')
       conversation_flow_structure = getField(
         fields,
         'conversation_flow_structure',
       )
       starting_script = getField(fields, 'starting_script')
+      max_session_length_raw = getField(fields, 'max_session_length')
     } else {
       throw new Error('Expected multipart form data for /api/start-session')
     }
@@ -179,30 +273,80 @@ export default async function handler(req, res) {
 
     const briefingSetup = parseBriefingSetup(briefingSetupRaw)
 
+    const flowForBeyond =
+      String(conversation_flow_field || '').trim() ||
+      String(conversation_flow_structure || '').trim()
+
+    const mergedRoleFlow = mergeEssentialsRoleAndFlow(system_prompt, flowForBeyond)
+
     const finalSystemPrompt = composeAgentSystemPrompt({
-      systemPrompt: system_prompt,
+      systemPrompt: mergedRoleFlow,
       roleObjectives: role_objectives,
-      conversationFlowStructure: conversation_flow_structure,
-      startingScript: starting_script,
+      conversationFlowStructure: '',
+      startingScript: '',
       briefingSetup,
     })
 
-    const maxSession =
-      briefingSetup?.sessionMinutes != null
-        ? briefingSetup.sessionMinutes
-        : undefined
+    const maxSession = resolveMaxSessionMinutes(
+      max_session_length_raw,
+      briefingSetup,
+    )
+
+    // UI / prompt pacing uses `maxSession` from briefing; Beyond Presence cap
+    // can be longer (e.g. 5 min rehearsal → 10 min BP) so the avatar stays
+    // available after the displayed timer hits zero until the user ends.
+    const beyondSessionCap = maxSession === 5 ? 10 : maxSession
+
+    const greetingBeyond =
+      String(starting_script || '').trim() ||
+      String(greeting || '').trim()
+
+    if (DEV_LOGGING) {
+      console.log('[start-session] Incoming multipart summaries:', {
+        system_prompt_len: String(system_prompt).trim().length,
+        system_prompt_preview: preview50(system_prompt),
+        greeting_len: String(greeting).trim().length,
+        greeting_preview: preview50(greeting),
+        conversation_flow_len: flowForBeyond.length,
+        conversation_flow_preview: preview50(flowForBeyond),
+        starting_script_len: String(starting_script).trim().length,
+        starting_script_preview: preview50(starting_script),
+        role_objectives_len: String(role_objectives).trim().length,
+        role_objectives_preview: preview50(role_objectives),
+        name,
+        max_session_length_raw: max_session_length_raw || '(empty)',
+        max_session_resolved_minutes: maxSession,
+        beyond_session_cap_minutes: beyondSessionCap,
+        briefing_setup_present: Boolean(String(briefingSetupRaw).trim()),
+      })
+      console.log(
+        '[start-session] Composed system_prompt preview:',
+        preview50(finalSystemPrompt),
+        `(total ${finalSystemPrompt.length} chars)`,
+      )
+    }
 
     const agentData = await createAgent({
       avatar_id,
       name,
       system_prompt: finalSystemPrompt,
-      greeting,
-      max_session_length_minutes: maxSession,
+      greeting: greetingBeyond,
+      conversational_flow: flowForBeyond,
+      starting_script,
+      max_session_length_minutes: beyondSessionCap,
     })
 
     logAgentKeys('agent', agentData)
 
-    const agent_id = agentData?.id
+    const agentRecord =
+      agentData && typeof agentData === 'object' ? agentData : null
+    const agent_id =
+      agentRecord &&
+      typeof agentRecord.id === 'string' &&
+      agentRecord.id.trim()
+        ? agentRecord.id.trim()
+        : null
+
     if (!agent_id) {
       throw new Error('Beyond Presence response missing agent id')
     }
@@ -211,8 +355,10 @@ export default async function handler(req, res) {
       .replace(/\/$/, '')
     const agent_embed_url = `${chatOrigin}/${agent_id}`
     const agent_name =
-      agentData?.name != null && agentData?.name !== ''
-        ? agentData.name
+      agentRecord &&
+      typeof agentRecord.name === 'string' &&
+      agentRecord.name.trim() !== ''
+        ? agentRecord.name.trim()
         : name
 
     return res.status(200).json({

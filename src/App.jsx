@@ -235,7 +235,6 @@ export default function App() {
       try {
         const { session: saved, agent_deleted } = await endSessionApi(
           {
-            transcript_text: 'No transcript provided',
             agent_id: agentSession?.agentId ?? null,
             scenario_type: scenarioType,
             mode_id: modeId,
@@ -335,6 +334,7 @@ export default function App() {
             <SimulationArena
               mode={mode}
               documentFile={file}
+              agentId={agentSession?.agentId ?? null}
               agentEmbedUrl={agentSession?.agentEmbedUrl ?? null}
               briefingSetup={briefingSetup}
               onEndSession={handleEndSession}
