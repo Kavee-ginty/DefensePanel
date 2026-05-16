@@ -5,16 +5,20 @@ import Dropzone from '../components/Dropzone.jsx'
 import Button from '../components/Button.jsx'
 import { useApp } from '../context/AppContext.jsx'
 import { processDocument, startSession } from '../lib/api.js'
+import toast from 'react-hot-toast'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export default function ContextUpload() {
   const navigate = useNavigate()
   const {
-    setSmePrompt,
-    setEvaluatorPrompt,
-    setSmeAgentId,
-    setEvaluatorAgentId,
+    setAgentSystemPrompt,
+    setAgentGreeting,
+    setAgentRoleObjectives,
+    setAgentConversationFlow,
+    setAgentStartingScript,
+    setAgentId,
+    setAgentEmbedUrl,
     setSessionId,
     scenario,
   } = useApp()
@@ -28,40 +32,62 @@ export default function ContextUpload() {
         setLoadingMessage('> GPT-4o is reading your document...')
         const [docResult] = await Promise.all([processDocument(file), sleep(1500)])
         if (!docResult?.success || !docResult.prompts) {
+          if (docResult && !docResult.success) {
+            toast.error('Analysis failed. Try a smaller PDF.')
+          }
           return
         }
 
-        setLoadingMessage('> Identifying your weakest arguments...')
+        setLoadingMessage('> Structuring role, flow, and opening script...')
         await sleep(1500)
 
-        const { sme_system_prompt, evaluator_system_prompt } =
-          docResult.prompts
-        setSmePrompt(sme_system_prompt)
-        setEvaluatorPrompt(evaluator_system_prompt)
+        const {
+          role_objectives,
+          conversation_flow_structure,
+          starting_script,
+          system_prompt,
+          greeting,
+        } = docResult.prompts
 
-        const promptsPayload = {
-          sme_system_prompt,
-          evaluator_system_prompt,
+        setAgentRoleObjectives(role_objectives ?? null)
+        setAgentConversationFlow(conversation_flow_structure ?? null)
+        setAgentStartingScript(starting_script ?? null)
+        setAgentSystemPrompt(system_prompt ?? null)
+        setAgentGreeting(greeting ?? null)
+
+        const agentPayload = {
+          system_prompt: system_prompt ?? '',
+          greeting: greeting ?? '',
+          name: `agent-${Date.now()}`,
         }
 
-        setLoadingMessage('> Initializing the panel members...')
+        setLoadingMessage('> Creating your Beyond Presence agent...')
         const [sessionResult] = await Promise.all([
-          startSession(promptsPayload),
+          startSession(agentPayload, file),
           sleep(1500),
         ])
         if (!sessionResult?.success) {
+          toast.error('Agent creation failed. Check API key.')
           return
         }
 
-        setSmeAgentId(sessionResult.sme_agent_id ?? null)
-        setEvaluatorAgentId(sessionResult.evaluator_agent_id ?? null)
+        if (sessionResult.knowledge_upload_warning) {
+          console.warn(
+            '[start-session]',
+            sessionResult.knowledge_upload_warning,
+          )
+        }
+
+        setAgentId(sessionResult.agent_id ?? null)
+        setAgentEmbedUrl(sessionResult.agent_embed_url ?? null)
         setSessionId(
           typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
             : `session-${Date.now()}`,
         )
 
-        setLoadingMessage('> The panel is ready. Good luck.')
+        toast.success('Panel initialized')
+        setLoadingMessage('> Ready. Opening arena.')
         await sleep(1500)
 
         navigate('/arena')
@@ -72,11 +98,14 @@ export default function ContextUpload() {
     },
     [
       navigate,
-      setEvaluatorAgentId,
-      setEvaluatorPrompt,
+      setAgentConversationFlow,
+      setAgentEmbedUrl,
+      setAgentGreeting,
+      setAgentId,
+      setAgentRoleObjectives,
+      setAgentStartingScript,
+      setAgentSystemPrompt,
       setSessionId,
-      setSmeAgentId,
-      setSmePrompt,
     ],
   )
 
@@ -97,7 +126,7 @@ export default function ContextUpload() {
         <h1 className="text-2xl font-bold text-zinc-50 mb-2">Briefing room</h1>
         <p className="text-zinc-400 mb-6">
           {scenario
-            ? `Mode: ${scenario} — upload a PDF to initialize the panel.`
+            ? `Mode: ${scenario} — upload a PDF to initialize your agent.`
             : 'Select a mode from the lobby first.'}
         </p>
         <Dropzone onFileAccepted={onFileAccepted} loading={busy} />

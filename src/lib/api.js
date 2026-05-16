@@ -40,11 +40,35 @@ export async function processDocument(file) {
 }
 
 /**
- * @param {{sme_system_prompt: string, evaluator_system_prompt: string}} prompts
+ * Create a Beyond Presence agent. Pass the PDF so the backend can attempt a knowledge upload.
+ * @param {{
+ *   system_prompt: string,
+ *   greeting: string,
+ *   name?: string,
+ * }} agentConfig
+ * @param {File} [pdf] - original PDF for optional knowledge upload
  */
-export async function startSession(prompts) {
+export async function startSession(agentConfig, pdf) {
   try {
-    return await postJson('/api/start-session', prompts)
+    const formData = new FormData()
+    formData.append('system_prompt', agentConfig.system_prompt)
+    formData.append('greeting', agentConfig.greeting)
+    if (agentConfig.name) {
+      formData.append('name', agentConfig.name)
+    }
+    if (pdf instanceof File) {
+      formData.append('pdf', pdf)
+    }
+
+    const res = await fetch('/api/start-session', {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(text || `Request failed: ${res.status}`)
+    }
+    return res.json()
   } catch (err) {
     console.error('startSession', err)
     toast.error(err?.message || 'Could not start session')
@@ -53,7 +77,7 @@ export async function startSession(prompts) {
 }
 
 /**
- * @param {{transcript: unknown, sme_agent_id: string, evaluator_agent_id: string, scenario_type: string, duration_seconds: number}} payload
+ * @param {{transcript: unknown, agent_id: string, scenario_type: string, duration_seconds: number}} payload
  */
 export async function endSession(payload) {
   try {

@@ -5,10 +5,15 @@ const AppContext = createContext(null)
 const initialState = {
   userId: 'demo-user-1',
   scenario: null,
-  smePrompt: null,
-  evaluatorPrompt: null,
-  smeAgentId: null,
-  evaluatorAgentId: null,
+  /** Generated agent configuration (from PDF + GPT). */
+  agentSystemPrompt: null,
+  agentGreeting: null,
+  agentRoleObjectives: null,
+  agentConversationFlow: null,
+  agentStartingScript: null,
+  agentId: null,
+  /** Bey chat embed URL — https://bey.chat/{agent_id}. */
+  agentEmbedUrl: null,
   sessionId: null,
   transcript: [],
   attackPoints: null,
@@ -19,14 +24,21 @@ const initialState = {
 export function AppProvider({ children }) {
   const [userId, setUserId] = useState(initialState.userId)
   const [scenario, setScenario] = useState(initialState.scenario)
-  const [smePrompt, setSmePrompt] = useState(initialState.smePrompt)
-  const [evaluatorPrompt, setEvaluatorPrompt] = useState(
-    initialState.evaluatorPrompt,
+  const [agentSystemPrompt, setAgentSystemPrompt] = useState(
+    initialState.agentSystemPrompt,
   )
-  const [smeAgentId, setSmeAgentId] = useState(initialState.smeAgentId)
-  const [evaluatorAgentId, setEvaluatorAgentId] = useState(
-    initialState.evaluatorAgentId,
+  const [agentGreeting, setAgentGreeting] = useState(initialState.agentGreeting)
+  const [agentRoleObjectives, setAgentRoleObjectives] = useState(
+    initialState.agentRoleObjectives,
   )
+  const [agentConversationFlow, setAgentConversationFlow] = useState(
+    initialState.agentConversationFlow,
+  )
+  const [agentStartingScript, setAgentStartingScript] = useState(
+    initialState.agentStartingScript,
+  )
+  const [agentId, setAgentId] = useState(initialState.agentId)
+  const [agentEmbedUrl, setAgentEmbedUrl] = useState(initialState.agentEmbedUrl)
   const [sessionId, setSessionId] = useState(initialState.sessionId)
   const [transcript, setTranscript] = useState(initialState.transcript)
   const [attackPoints, setAttackPoints] = useState(initialState.attackPoints)
@@ -38,14 +50,20 @@ export function AppProvider({ children }) {
       setUserId,
       scenario,
       setScenario,
-      smePrompt,
-      setSmePrompt,
-      evaluatorPrompt,
-      setEvaluatorPrompt,
-      smeAgentId,
-      setSmeAgentId,
-      evaluatorAgentId,
-      setEvaluatorAgentId,
+      agentSystemPrompt,
+      setAgentSystemPrompt,
+      agentGreeting,
+      setAgentGreeting,
+      agentRoleObjectives,
+      setAgentRoleObjectives,
+      agentConversationFlow,
+      setAgentConversationFlow,
+      agentStartingScript,
+      setAgentStartingScript,
+      agentId,
+      setAgentId,
+      agentEmbedUrl,
+      setAgentEmbedUrl,
       sessionId,
       setSessionId,
       transcript,
@@ -57,10 +75,13 @@ export function AppProvider({ children }) {
       resetApp: () => {
         setUserId(initialState.userId)
         setScenario(initialState.scenario)
-        setSmePrompt(initialState.smePrompt)
-        setEvaluatorPrompt(initialState.evaluatorPrompt)
-        setSmeAgentId(initialState.smeAgentId)
-        setEvaluatorAgentId(initialState.evaluatorAgentId)
+        setAgentSystemPrompt(initialState.agentSystemPrompt)
+        setAgentGreeting(initialState.agentGreeting)
+        setAgentRoleObjectives(initialState.agentRoleObjectives)
+        setAgentConversationFlow(initialState.agentConversationFlow)
+        setAgentStartingScript(initialState.agentStartingScript)
+        setAgentId(initialState.agentId)
+        setAgentEmbedUrl(initialState.agentEmbedUrl)
         setSessionId(initialState.sessionId)
         setTranscript([...initialState.transcript])
         setAttackPoints(initialState.attackPoints)
@@ -70,10 +91,13 @@ export function AppProvider({ children }) {
     [
       userId,
       scenario,
-      smePrompt,
-      evaluatorPrompt,
-      smeAgentId,
-      evaluatorAgentId,
+      agentSystemPrompt,
+      agentGreeting,
+      agentRoleObjectives,
+      agentConversationFlow,
+      agentStartingScript,
+      agentId,
+      agentEmbedUrl,
       sessionId,
       transcript,
       attackPoints,

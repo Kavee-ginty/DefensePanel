@@ -1,19 +1,15 @@
 /**
- * Beyond Presence embed — set VITE_BEYOND_AGENT_EMBED_BASE in .env if your dashboard
- * uses a different host (trailing slash optional).
+ * @param {object} props
+ * @param {string | null} [props.embedUrl]
+ * @param {string} [props.label]
  */
-function buildEmbedUrl(agentId) {
-  const base =
-    import.meta.env.VITE_BEYOND_AGENT_EMBED_BASE?.replace(/\/$/, '') ||
-    'https://app.bey.dev/embed'
-  const sep = base.includes('?') ? '&' : '?'
-  return `${base}${sep}id=${encodeURIComponent(agentId)}`
-}
+export default function AvatarView({ embedUrl, label }) {
+  const hasUrl =
+    typeof embedUrl === 'string' && embedUrl.trim() !== ''
 
-export default function AvatarView({ agentId, label }) {
-  if (!agentId) {
+  if (!hasUrl) {
     return (
-      <div className="aspect-video rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden relative flex items-center justify-center">
+      <div className="relative h-full w-full min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 animate-pulse bg-zinc-800/60" />
         <p className="relative z-10 text-zinc-400 text-sm">Connecting...</p>
         {label ? (
@@ -26,12 +22,14 @@ export default function AvatarView({ agentId, label }) {
   }
 
   return (
-    <div className="aspect-video rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden relative">
+    <div className="relative h-full w-full min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
       <iframe
-        title="Beyond Presence avatar"
-        src={buildEmbedUrl(agentId)}
-        className="absolute inset-0 h-full w-full border-0"
-        allow="camera; microphone; display-capture; autoplay"
+        title={label ? `Beyond Presence: ${label}` : 'Beyond Presence avatar'}
+        src={embedUrl.trim()}
+        allow="camera; microphone; fullscreen"
+        allowFullScreen
+        className="w-full h-full border-0 max-w-full"
+        style={{ border: 'none' }}
       />
       {label ? (
         <span className="absolute bottom-2 left-2 text-xs text-zinc-300 z-10 pointer-events-none drop-shadow">
