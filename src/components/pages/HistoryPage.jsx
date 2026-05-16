@@ -65,14 +65,14 @@ function RubricTrail({ session }) {
   if (!parts.length) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1.5">
-      <span className="mr-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+      <span className="mr-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-zinc-600">
         <Sparkles className="h-3 w-3" aria-hidden />
         Rubric
       </span>
       {parts.map(({ label, val }) => (
         <span
           key={label}
-          className="rounded-md border border-cyan-500/25 bg-cyan-500/[0.08] px-2 py-0.5 font-mono text-[10px] font-medium tabular-nums text-cyan-300"
+          className="rounded-md border border-cyan-500/25 bg-cyan-500/[0.08] px-2 py-0.5 font-mono text-xs font-medium tabular-nums text-cyan-300"
         >
           {label}:{val}
         </span>
@@ -92,15 +92,15 @@ export default function HistoryPage({
 }) {
   return (
     <MarketingLayout>
-      <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
-        <header className="mb-10 max-w-2xl">
-          <p className="text-xs font-medium uppercase tracking-widest text-blue-400">
+      <div className="mx-auto max-w-6xl px-6 py-16 text-[17px] leading-relaxed sm:py-20">
+        <header className="mb-10 max-w-4xl">
+          <p className="text-base font-medium uppercase tracking-widest text-blue-400">
             History
           </p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="mt-3 text-[2rem] font-bold tracking-tight sm:text-[2.375rem]">
             Previous sessions
           </h1>
-          <p className="mt-4 text-base text-zinc-400">
+          <p className="mt-4 text-xl text-zinc-400">
             Tap a session for full debrief; bookmark persists to your account.
           </p>
         </header>
@@ -108,23 +108,23 @@ export default function HistoryPage({
         {loading && sessions.length === 0 && (
           <div className="flex items-center justify-center gap-2 py-16 text-zinc-400">
             <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
-            <span className="text-sm">Loading sessions…</span>
+            <span className="text-base">Loading sessions…</span>
           </div>
         )}
 
         {error && !loading && sessions.length === 0 && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-base text-red-300">
             {error}
             {onRetry && (
               <button
                 type="button"
                 onClick={() => onRetry()}
-                className="mt-3 block text-xs font-medium text-blue-400 hover:text-blue-300"
+                className="mt-3 block text-sm font-medium text-blue-400 hover:text-blue-300"
               >
                 Try again
               </button>
             )}
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-sm text-zinc-500">
               {import.meta.env.PROD
                 ? 'Production uses /api routes. Set SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY on Vercel, then redeploy.'
                 : 'Ensure pitch_sessions exists (run supabase/pitch_sessions.sql and optional extensions) and you are signed in. Local dev reads Supabase directly; set VITE_USE_API_SESSIONS=true only if you also run vercel dev.'}
@@ -135,7 +135,7 @@ export default function HistoryPage({
         {!loading && !error && sessions.length === 0 && (
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-6 py-12 text-center">
             <p className="text-sm font-medium text-zinc-300">No sessions yet</p>
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-sm text-zinc-500">
               Complete a simulation and end the session to see it here.
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function HistoryPage({
         {sessions.length > 0 && (
           <ul className="space-y-3">
             {loading && (
-              <li className="flex justify-center py-2 text-xs text-zinc-500">
+              <li className="flex justify-center py-2 text-sm text-zinc-500">
                 <Loader2 className="mr-2 h-3 w-3 animate-spin" aria-hidden />
                 Refreshing…
               </li>
@@ -178,7 +178,7 @@ export default function HistoryPage({
                         <p className="font-medium text-zinc-100">
                           {formatScenarioLabel(session.scenario_type)}
                         </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+                        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
                           <span>{formatDate(session.created_at)}</span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" aria-hidden />
@@ -189,23 +189,23 @@ export default function HistoryPage({
 
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           {session.difficulty ? (
-                            <span className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-900/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                            <span className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-900/70 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-zinc-400">
                               <Layers className="h-3 w-3" aria-hidden />
                               {formatTitleCase(session.difficulty)}
                             </span>
                           ) : null}
                           {session.panel_persona ? (
-                            <span className="rounded-lg border border-violet-500/30 bg-violet-500/[0.08] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-violet-300">
+                            <span className="rounded-lg border border-violet-500/30 bg-violet-500/[0.08] px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-violet-300">
                               Persona · {formatTitleCase(session.panel_persona)}
                             </span>
                           ) : null}
                           {typeof session.session_minutes === 'number' ? (
-                            <span className="rounded-lg border border-cyan-500/30 bg-cyan-500/[0.08] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-cyan-300">
+                            <span className="rounded-lg border border-cyan-500/30 bg-cyan-500/[0.08] px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-cyan-300">
                               Target · {session.session_minutes}m
                             </span>
                           ) : null}
                           {session.vision_mode ? (
-                            <span className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-200">
+                            <span className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-amber-200">
                               Vision
                             </span>
                           ) : null}
@@ -227,7 +227,7 @@ export default function HistoryPage({
                         <RubricTrail session={session} />
                       </div>
 
-                      <span className="ml-auto mt-2 shrink-0 self-center rounded-lg px-2 py-1 text-xs font-medium text-blue-400 sm:mt-0 sm:self-start">
+                      <span className="ml-auto mt-2 shrink-0 self-center rounded-lg px-2 py-1 text-sm font-medium text-blue-400 sm:mt-0 sm:self-start">
                         View debrief
                       </span>
                     </button>

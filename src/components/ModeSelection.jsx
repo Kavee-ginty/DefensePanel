@@ -69,21 +69,26 @@ export default function ModeSelection({
 }) {
   return (
     <MarketingLayout>
-      <div className="mx-auto max-w-5xl px-6 pb-20 pt-4 sm:pt-8">
+      <div className="mx-auto max-w-6xl px-6 pb-20 pt-4 text-[17px] leading-relaxed sm:pt-8">
         <section className="mb-16 text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+          <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-base font-medium text-blue-300">
+            <Sparkles className="h-4 w-4" aria-hidden />
             AI-powered defense rehearsal
           </p>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-6 text-[2.375rem] font-bold leading-tight tracking-tight sm:text-[3rem]">
             Train under pressure.
             <br />
             <span className="text-zinc-400">Perform when it counts.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-zinc-400">
+          <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-zinc-400">
             The Defense Panel puts you in a high-stakes interrogation room with
             AI investors, examiners, and hiring managers — before the real panel
             ever sees your slides.
+          </p>
+          <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-zinc-500">
+            Pick a simulation, upload context, and rehearse live: the panel reads
+            your document, probes weak spots, and leaves you with scores and feedback
+            you can act on before the real meeting.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <button
@@ -93,13 +98,13 @@ export default function ModeSelection({
                   .getElementById('sim-modes')
                   ?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] transition-colors hover:bg-blue-500"
+              className="rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] transition-colors hover:bg-blue-500"
             >
               Start a simulation
             </button>
             <a
               href="#sim-modes"
-              className="rounded-xl border border-zinc-700 px-6 py-3 text-sm font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+              className="rounded-xl border border-zinc-700 px-6 py-3.5 text-base font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
             >
               Explore modes
             </a>
@@ -110,25 +115,25 @@ export default function ModeSelection({
           {FEATURES.map(({ icon: Icon, title, text }) => (
             <div
               key={title}
-              className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-5 backdrop-blur-sm"
+              className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-5 backdrop-blur-sm sm:p-6"
             >
               <Icon className="mb-3 h-6 w-6 text-cyan-400" aria-hidden />
-              <h2 className="text-sm font-semibold text-zinc-100">{title}</h2>
-              <p className="mt-1 text-xs leading-relaxed text-zinc-500">{text}</p>
+              <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+              <p className="mt-1 text-base leading-relaxed text-zinc-500">{text}</p>
             </div>
           ))}
         </section>
 
         <section className="mb-16 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-6 sm:p-8">
-          <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-zinc-500">
+          <h2 className="text-center text-lg font-semibold uppercase tracking-widest text-zinc-500">
             How it works
           </h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {STEPS.map((step) => (
               <div key={step.n} className="text-center">
                 <span className="text-2xl font-bold text-blue-500/80">{step.n}</span>
-                <p className="mt-2 font-medium text-zinc-200">{step.label}</p>
-                <p className="mt-1 text-xs text-zinc-500">{step.detail}</p>
+                <p className="mt-2 text-lg font-medium text-zinc-200">{step.label}</p>
+                <p className="mt-1 text-base text-zinc-500">{step.detail}</p>
               </div>
             ))}
           </div>
@@ -136,12 +141,13 @@ export default function ModeSelection({
 
         <section id="sim-modes">
           <header className="mb-8 text-center">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-[1.625rem] font-bold tracking-tight sm:text-[1.875rem]">
               Choose your simulation
             </h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-zinc-400">
+            <p className="mx-auto mt-3 max-w-3xl text-lg text-zinc-400">
               Select a mode, upload your document, then enter the live arena with
-              AI panelists.
+              AI panelists. Each mode tunes tone and questioning style — startup pitch,
+              academic viva, or technical interview.
             </p>
           </header>
 
@@ -169,17 +175,17 @@ export default function ModeSelection({
                   ].join(' ')}
                 >
                   {isSelected && (
-                    <span className="absolute right-3 top-3 rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                    <span className="absolute right-3 top-3 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-blue-300">
                       Selected
                     </span>
                   )}
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-zinc-900/80 text-zinc-300 transition-transform group-hover:scale-105">
                     <Icon className="h-5 w-5" strokeWidth={2} aria-hidden />
                   </div>
-                  <h3 className="text-lg font-semibold tracking-tight">
+                  <h3 className="text-xl font-semibold tracking-tight">
                     {mode.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  <p className="mt-2 text-base leading-relaxed text-zinc-400">
                     {mode.description}
                   </p>
                 </button>
@@ -193,7 +199,7 @@ export default function ModeSelection({
                 type="button"
                 disabled={!selectedId || disabled}
                 onClick={() => onContinue(selectedId)}
-                className="min-w-[220px] rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
+                className="min-w-[220px] rounded-xl bg-blue-600 px-8 py-3.5 text-base font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
               >
                 Continue to briefing
               </button>
