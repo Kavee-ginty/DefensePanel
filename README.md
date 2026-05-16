@@ -4,17 +4,16 @@ Immersive AI simulation for pitch, viva, and technical interview practice.
 
 ## Setup
 
+See **[REQUIREMENTS.md](REQUIREMENTS.md)** for full clone-and-run instructions (Node version, Supabase SQL, env vars, and troubleshooting).
+
+Quick start:
+
 ```bash
 npm install
 cp .env.example .env
 ```
 
-Add your Supabase credentials to `.env`:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-
-In the [Supabase dashboard](https://supabase.com/dashboard), enable **Email** auth for sign-up and login.
+Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to `.env`, run `supabase/pitch_sessions.sql` in Supabase, enable **Email** auth, then:
 
 ## Run
 
@@ -27,7 +26,7 @@ npm run dev
 1. **Auth** — Login (email/password) or Register (username, email, password)
 2. **Lobby** — Select Startup Pitch, Academic Viva, or Technical Interview
 3. **Briefing** — Upload mode-specific PDF (deck, thesis, or CV)
-4. **Arena** — Large user webcam + two Beyond Presence panel slots
+4. **Arena** — Startup Pitch: PDF slides + presenter PIP + panelists; other modes: full webcam + panelists
 5. **Debrief** — Performance analytics (mock data until API is wired)
 
 ## Build

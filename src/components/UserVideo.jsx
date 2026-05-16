@@ -5,6 +5,7 @@ export default function UserVideo({
   videoOff = false,
   documentName = null,
   pipMode = false,
+  fill = false,
   className = '',
 }) {
   const videoRef = useRef(null);
@@ -92,7 +93,8 @@ export default function UserVideo({
   return (
     <div
       className={[
-        'relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-950 ring-2',
+        'relative w-full overflow-hidden rounded-xl bg-zinc-950 ring-2',
+        fill ? 'h-full min-h-0' : 'aspect-video',
         ringClass,
         className,
       ].join(' ')}

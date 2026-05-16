@@ -63,7 +63,7 @@ export default function SimulationArena({
     </div>
   );
 
-  const pitchPanelColumn = (
+  const panelColumn = (
     <div className="flex h-full min-h-0 w-full shrink-0 flex-col gap-3 lg:w-[380px]">
       {panels.map((panel, index) => (
         <BeyPanelFrame
@@ -77,77 +77,45 @@ export default function SimulationArena({
     </div>
   );
 
-  const standardPanelColumn = (
-    <div className="flex w-full shrink-0 flex-col gap-4 lg:w-[340px]">
-      {panels.map((panel, index) => (
-        <BeyPanelFrame
-          key={panel.label + index}
-          embedUrl={panel.embedUrl}
-          label={panel.label}
-          isBargeIn={panel.isBargeIn}
-        />
-      ))}
-    </div>
-  );
-
   return (
     <div className="relative overflow-hidden bg-black font-sans text-zinc-50">
       <div className="absolute left-4 top-2 z-10 hidden text-xs font-medium uppercase tracking-wider text-zinc-500 sm:block">
         {config.arenaSubtitle}
       </div>
 
-      <div
-        className={[
-          'mx-auto flex max-w-7xl flex-col gap-4 p-4 lg:flex-row lg:gap-6 lg:p-6',
-          isPitchMode
-            ? 'h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] overflow-hidden pt-2'
-            : 'min-h-[calc(100dvh-5rem)] pt-2',
-        ].join(' ')}
-      >
-        {isPitchMode ? (
-          <>
-            <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
-              <div className="relative min-h-0 flex-1 overflow-y-auto rounded-xl">
-                <PdfPresentationView
-                  file={documentFile}
-                  compact
-                  className="h-full min-h-full"
+      <div className="mx-auto flex h-[calc(100dvh-5rem)] max-h-[calc(100dvh-5rem)] max-w-7xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
+        <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
+          {isPitchMode ? (
+            <PdfPresentationView file={documentFile} arena />
+          ) : (
+            <UserVideo
+              muted={muted}
+              videoOff={videoOff}
+              fill
+              className="h-full w-full rounded-xl"
+            />
+          )}
+
+          {isPitchMode && (
+            <div className="pointer-events-none absolute right-3 top-3 z-20 w-[190px] overflow-hidden rounded-xl border border-zinc-700/80 shadow-[0_8px_32px_rgba(0,0,0,0.65)] ring-2 ring-cyan-400/50">
+              <div className="pointer-events-auto aspect-video w-full">
+                <UserVideo
+                  muted={muted}
+                  videoOff={videoOff}
+                  pipMode
+                  className="h-full w-full"
                 />
               </div>
-
-              <div className="pointer-events-none absolute right-3 top-3 z-20 w-[190px] overflow-hidden rounded-xl border border-zinc-700/80 shadow-[0_8px_32px_rgba(0,0,0,0.65)] ring-2 ring-cyan-400/50">
-                <div className="pointer-events-auto aspect-video w-full">
-                  <UserVideo
-                    muted={muted}
-                    videoOff={videoOff}
-                    pipMode
-                    className="h-full w-full"
-                  />
-                </div>
-                <div className="pointer-events-none absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300 backdrop-blur-sm">
-                  Presenter
-                </div>
+              <div className="pointer-events-none absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300 backdrop-blur-sm">
+                Presenter
               </div>
+            </div>
+          )}
 
-              {liveBadge}
-              {arenaControls}
-            </div>
-            {pitchPanelColumn}
-          </>
-        ) : (
-          <>
-            <div className="relative min-h-0 min-w-0 flex-1">
-              <UserVideo
-                muted={muted}
-                videoOff={videoOff}
-                documentName={documentFile?.name ?? null}
-              />
-              {liveBadge}
-              {arenaControls}
-            </div>
-            {standardPanelColumn}
-          </>
-        )}
+          {liveBadge}
+          {arenaControls}
+        </div>
+        {panelColumn}
       </div>
 
       <EndSessionModal
