@@ -126,7 +126,9 @@ export default async function handler(req, res) {
       throw new Error('Beyond Presence response missing agent id')
     }
 
-    const agent_embed_url = `https://bey.chat/embed/${agentData.id}`
+    const chatOrigin = (process.env.BEY_CHAT_EMBED_ORIGIN || 'https://bey.chat')
+      .replace(/\/$/, '')
+    const agent_embed_url = `${chatOrigin}/${agent_id}`
     const agent_name =
       agentData?.name != null && agentData?.name !== ''
         ? agentData.name

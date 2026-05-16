@@ -13,7 +13,7 @@ const initialState = {
   agentStartingScript: null,
   agentId: null,
   agentName: null,
-  /** Bey chat embed URL — https://bey.chat/embed/{agent_id}. */
+  /** Bey chat URL for iframe — https://bey.chat/{agent_id} (override via BEY_CHAT_EMBED_ORIGIN). */
   agentEmbedUrl: null,
   sessionId: null,
   transcript: [],
