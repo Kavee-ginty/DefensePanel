@@ -7,14 +7,26 @@ import UserVideo from './UserVideo.jsx';
 import ArenaControls from './ArenaControls.jsx';
 import EndSessionModal from './EndSessionModal.jsx';
 
+const PERSONA_LABEL = {
+  investor: 'Investor',
+  cfo: 'CFO',
+  professor: 'Professor',
+};
+
+function formatDifficulty(raw) {
+  if (!raw) return 'Standard';
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
 export default function SimulationArena({
   mode,
   documentFile = null,
   agentEmbedUrl = null,
+  briefingSetup = null,
   onEndSession,
 }) {
   const config = getModeConfig(mode);
-  const isPitchMode = mode === 'startup';
+  const showDocPreview = Boolean(documentFile);
   const sessionStartedAt = useRef(Date.now());
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
@@ -49,6 +61,24 @@ export default function SimulationArena({
       modeId: mode,
     });
   };
+
+  const rehearsalHint = briefingSetup && (
+    <div className="absolute right-3 top-2 z-20 hidden max-w-md rounded-xl border border-cyan-500/35 bg-black/65 px-3 py-2 text-[11px] font-medium leading-snug text-cyan-100/95 shadow-lg backdrop-blur-sm sm:flex sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-1">
+      <span className="tabular-nums text-cyan-200">
+        Goal {briefingSetup?.sessionMinutes ?? 5} min
+      </span>
+      <span className="text-zinc-500">·</span>
+      <span>{formatDifficulty(briefingSetup?.difficulty)}</span>
+      <span className="text-zinc-500">·</span>
+      <span>{PERSONA_LABEL[briefingSetup?.panelPersona] ?? 'Investor'} tone</span>
+      {briefingSetup?.visionMode && (
+        <>
+          <span className="text-zinc-500">·</span>
+          <span className="text-amber-200">Vision</span>
+        </>
+      )}
+    </div>
+  );
 
   const liveBadge = (
     <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
@@ -91,10 +121,11 @@ export default function SimulationArena({
       <div className="absolute left-4 top-2 z-10 hidden text-xs font-medium uppercase tracking-wider text-zinc-500 sm:block">
         {config.arenaSubtitle}
       </div>
+      {rehearsalHint}
 
       <div className="mx-auto flex h-[calc(100dvh-4.75rem)] max-h-[calc(100dvh-4.75rem)] max-w-7xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
         <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
-          {isPitchMode ? (
+          {showDocPreview ? (
             <PdfPresentationView file={documentFile} arena />
           ) : (
             <UserVideo
@@ -105,7 +136,7 @@ export default function SimulationArena({
             />
           )}
 
-          {isPitchMode && (
+          {showDocPreview && (
             <div className="pointer-events-none absolute right-3 top-3 z-20 w-[190px] overflow-hidden rounded-xl border border-zinc-700/80 shadow-[0_8px_32px_rgba(0,0,0,0.65)] ring-2 ring-cyan-400/50">
               <div className="pointer-events-auto aspect-video w-full">
                 <UserVideo

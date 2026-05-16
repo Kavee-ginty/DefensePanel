@@ -6,9 +6,6 @@ import {
   normalizeScenarioType,
 } from '../lib/supabaseAdmin.js';
 
-const SESSION_COLUMNS =
-  'id, user_id, created_at, scenario_type, duration_seconds, filler_word_count, critical_feedback, overall_score';
-
 export default async function handler(req, res) {
   try {
     const auth = await getUserFromRequest(req);
@@ -20,7 +17,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { data, error } = await admin
         .from('pitch_sessions')
-        .select(SESSION_COLUMNS)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(25);
@@ -65,7 +62,7 @@ export default async function handler(req, res) {
       const { data, error } = await admin
         .from('pitch_sessions')
         .insert(row)
-        .select(SESSION_COLUMNS)
+        .select('*')
         .single();
 
       if (error) {

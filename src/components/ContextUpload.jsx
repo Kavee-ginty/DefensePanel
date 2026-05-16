@@ -1,5 +1,16 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, FileText, Loader2, Upload, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Eye,
+  FileText,
+  Loader2,
+  SlidersHorizontal,
+  Timer,
+  Upload,
+  Users,
+  X,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getModeConfig } from '../config/modeConfig.js';
 import {
@@ -8,9 +19,29 @@ import {
 } from '../lib/extractDocumentText.js';
 import { processDocument, startSession } from '../lib/sessionApi.js';
 
+const SESSION_MINUTES = [3, 5, 10, 15];
+const DIFFICULTY_OPTIONS = [
+  { id: 'friendly', label: 'Friendly' },
+  { id: 'standard', label: 'Standard' },
+  { id: 'brutal', label: 'Brutal' },
+];
+const PERSONAS = [
+  { id: 'investor', label: 'Investor' },
+  { id: 'cfo', label: 'CFO' },
+  { id: 'professor', label: 'Professor' },
+];
+const PRACTICE_GOALS = [
+  { id: 'filler_words', label: 'Reduce filler words' },
+  { id: 'confidence', label: 'Improve confidence' },
+  { id: 'technical_depth', label: 'Improve technical depth' },
+  { id: 'objections', label: 'Handle objections' },
+];
+
 export default function ContextUpload({
   mode = 'startup',
   file = null,
+  briefingSetup = null,
+  onBriefingSetupChange,
   onFileChange,
   onInitialize,
   onAgentReady,
@@ -33,6 +64,25 @@ export default function ContextUpload({
   const resolvedTitle = title ?? config.briefingTitle;
   const resolvedDescription = description ?? config.briefingDescription;
   const resolvedSubmit = submitLabel ?? config.submitLabel;
+
+  const mergeSetup = (partial) =>
+    typeof onBriefingSetupChange === 'function'
+      ? onBriefingSetupChange({ ...(briefingSetup ?? {}), ...partial })
+      : undefined;
+
+  const difficulty = briefingSetup?.difficulty ?? 'standard';
+  const sessionMinutes = briefingSetup?.sessionMinutes ?? 5;
+  const panelPersona = briefingSetup?.panelPersona ?? 'investor';
+  const practiceGoals = briefingSetup?.practiceGoals ?? [];
+  const visionMode = Boolean(briefingSetup?.visionMode);
+
+  const toggleGoal = (goalId) => {
+    const goals = [...(briefingSetup?.practiceGoals ?? [])];
+    const ix = goals.indexOf(goalId);
+    if (ix >= 0) goals.splice(ix, 1);
+    else goals.push(goalId);
+    mergeSetup({ practiceGoals: goals });
+  };
 
   const clearFile = useCallback(() => {
     onFileChange?.(null);
@@ -129,7 +179,7 @@ export default function ContextUpload({
 
   return (
     <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50">
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-16">
+      <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-16">
         {onBack && (
           <button
             type="button"
@@ -151,6 +201,134 @@ export default function ContextUpload({
           <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-zinc-400">
             {resolvedDescription}
           </p>
+
+          <section className="mt-10 border-t border-zinc-800/70 pt-8 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-400/90">
+              Pre-session setup
+            </p>
+            <p className="mt-1 max-w-xl text-xs text-zinc-500">
+              Optional preferences for rehearsal context. These controls do not alter
+              the agent embed call — purely for UX and pacing.
+            </p>
+
+            <div className="mt-6 space-y-8">
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+                  Difficulty
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {DIFFICULTY_OPTIONS.map(({ id: did, label }) => (
+                    <button
+                      key={did}
+                      type="button"
+                      onClick={() => mergeSetup({ difficulty: did })}
+                      className={[
+                        'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                        difficulty === did
+                          ? 'bg-blue-600 text-white ring-2 ring-blue-400/70'
+                          : 'border border-zinc-700 bg-zinc-900/60 text-zinc-300 hover:border-zinc-500',
+                      ].join(' ')}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  <Timer className="h-3.5 w-3.5" aria-hidden />
+                  Session time (minutes)
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {SESSION_MINUTES.map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => mergeSetup({ sessionMinutes: mins })}
+                      className={[
+                        'min-w-[3.25rem] rounded-lg px-3 py-2 text-sm font-semibold tabular-nums transition-colors',
+                        sessionMinutes === mins
+                          ? 'bg-cyan-600 text-white ring-2 ring-cyan-400/60'
+                          : 'border border-zinc-700 bg-zinc-900/60 text-zinc-300 hover:border-zinc-500',
+                      ].join(' ')}
+                    >
+                      {mins}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  <Users className="h-3.5 w-3.5" aria-hidden />
+                  Panel personas
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PERSONAS.map(({ id: pid, label }) => (
+                    <button
+                      key={pid}
+                      type="button"
+                      onClick={() => mergeSetup({ panelPersona: pid })}
+                      className={[
+                        'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                        panelPersona === pid
+                          ? 'bg-violet-600 text-white ring-2 ring-violet-400/60'
+                          : 'border border-zinc-700 bg-zinc-900/60 text-zinc-300 hover:border-zinc-500',
+                      ].join(' ')}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Practice goals
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {PRACTICE_GOALS.map(({ id: gid, label }) => (
+                    <label
+                      key={gid}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-3 text-sm text-zinc-200 hover:border-zinc-600"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={practiceGoals.includes(gid)}
+                        onChange={() => toggleGoal(gid)}
+                        className="size-4 rounded border-zinc-600 bg-zinc-950 accent-blue-500"
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <label className="flex cursor-pointer flex-col gap-3 rounded-xl border border-amber-500/35 bg-amber-500/[0.07] px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+                <span className="flex items-start gap-3">
+                  <Eye className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden />
+                  <span>
+                    <span className="font-medium text-zinc-100">
+                      Vision mode
+                    </span>
+                    <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
+                      Enables camera-focused rehearsal when your environment supports it —
+                      demo note: may add latency vs lean audio-only runs.
+                    </span>
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={visionMode}
+                  onChange={(e) => mergeSetup({ visionMode: e.target.checked })}
+                  className="mt-2 size-5 shrink-0 cursor-pointer accent-amber-500 sm:mt-0"
+                  aria-label="Vision mode toggle"
+                />
+              </label>
+            </div>
+          </section>
 
           <label
             htmlFor={inputId}

@@ -6,6 +6,7 @@ import { getModeConfig } from './config/modeConfig.js';
 import {
   chartFromSessions,
   fetchSessions,
+  setSessionBookmark,
 } from './lib/sessionsApi.js';
 import { buildInterimScores } from './lib/interimScoring.js';
 import {
@@ -28,6 +29,17 @@ const PricingPage = lazy(() => import('./components/pages/PricingPage.jsx'));
 const HistoryPage = lazy(
   () => import('./components/pages/HistoryPage.jsx'),
 );
+const DashboardPage = lazy(
+  () => import('./components/pages/DashboardPage.jsx'),
+);
+
+const DEFAULT_BRIEFING_SETUP = {
+  difficulty: 'standard',
+  sessionMinutes: 5,
+  panelPersona: 'investor',
+  practiceGoals: [],
+  visionMode: false,
+};
 
 const CACHE_TTL_MS = 30_000;
 
@@ -57,6 +69,9 @@ export default function App() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState(null);
   const [sessionsCacheFetchedAt, setSessionsCacheFetchedAt] = useState(0);
+  const [briefingSetup, setBriefingSetup] = useState(DEFAULT_BRIEFING_SETUP);
+  const [bookmarkUpdatingSessionId, setBookmarkUpdatingSessionId] =
+    useState(null);
 
   const accessToken = session?.access_token ?? null;
   const userId = user?.id ?? null;
@@ -89,6 +104,33 @@ export default function App() {
     [accessToken],
   );
 
+  const patchSessionBookmark = useCallback(
+    async (sessionId, bookmarked) => {
+      if (!accessToken || !sessionId) return;
+      setBookmarkUpdatingSessionId(sessionId);
+      try {
+        const { session: updated } = await setSessionBookmark(
+          sessionId,
+          bookmarked,
+          accessToken,
+        );
+        setSessionsCache((prev) =>
+          prev.map((s) => (s.id === updated.id ? updated : s)),
+        );
+        setActiveSession((prev) =>
+          prev?.id === updated.id ? { ...prev, ...updated } : prev,
+        );
+        setSessionsCacheFetchedAt(Date.now());
+      } catch (err) {
+        console.error('[App] patchSessionBookmark', err);
+        toast.error(err.message || 'Could not update bookmark');
+      } finally {
+        setBookmarkUpdatingSessionId(null);
+      }
+    },
+    [accessToken],
+  );
+
   useEffect(() => {
     if (!session && inSimulation) {
       setInSimulation(false);
@@ -104,7 +146,7 @@ export default function App() {
   }, [view, mode, file]);
 
   useEffect(() => {
-    if (page !== 'history' || !accessToken) return;
+    if ((!['history', 'dashboard'].includes(page)) || !accessToken) return;
     const age = Date.now() - sessionsCacheFetchedAt;
     const hasFreshCache =
       sessionsCache.length > 0 && age < CACHE_TTL_MS;
@@ -120,6 +162,7 @@ export default function App() {
     setDebriefFromHistory(false);
     setDebriefSaving(false);
     setSessionError(null);
+    setBriefingSetup(DEFAULT_BRIEFING_SETUP);
   };
 
   const handleAgentReady = useCallback((next) => {
@@ -279,6 +322,8 @@ export default function App() {
             <ContextUpload
               mode={mode}
               file={file}
+              briefingSetup={briefingSetup}
+              onBriefingSetupChange={setBriefingSetup}
               onFileChange={setFile}
               onBack={goLobby}
               onAgentReady={handleAgentReady}
@@ -291,6 +336,7 @@ export default function App() {
               mode={mode}
               documentFile={file}
               agentEmbedUrl={agentSession?.agentEmbedUrl ?? null}
+              briefingSetup={briefingSetup}
               onEndSession={handleEndSession}
             />
           );
@@ -318,6 +364,10 @@ export default function App() {
                       ? [{ label: 'S1', score: activeSession.overall_score }]
                       : []
                 }
+                sessionRecord={activeSession}
+                allSessions={sessionsCache}
+                patchSessionBookmark={patchSessionBookmark}
+                bookmarkUpdatingSessionId={bookmarkUpdatingSessionId}
                 onReturn={handleDebriefReturn}
                 onGoHistory={handleDebriefGoHistory}
               />
@@ -346,6 +396,16 @@ export default function App() {
         return <ContactPage />;
       case 'pricing':
         return <PricingPage onStartSimulation={startSimulation} />;
+      case 'dashboard':
+        return (
+          <DashboardPage
+            sessions={sessionsCache}
+            loading={sessionsLoading}
+            error={sessionsError}
+            onRetry={() => loadSessions(false)}
+            onGoHistory={() => navigateMarketing('history')}
+          />
+        );
       case 'history':
         return (
           <HistoryPage
@@ -353,6 +413,8 @@ export default function App() {
             loading={sessionsLoading}
             error={sessionsError}
             onRetry={() => loadSessions(false)}
+            patchSessionBookmark={patchSessionBookmark}
+            bookmarkUpdatingSessionId={bookmarkUpdatingSessionId}
             onOpenSession={(row) =>
               openSessionDebrief(row, sessionsCache)
             }

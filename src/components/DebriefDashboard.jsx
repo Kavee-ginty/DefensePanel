@@ -1,5 +1,16 @@
-import { useId } from 'react';
-import { AlertTriangle, Sparkles } from 'lucide-react';
+import { useId, useMemo } from 'react';
+import {
+  AlertTriangle,
+  Bookmark,
+  FileDown,
+  Loader2,
+  Sparkles,
+} from 'lucide-react';
+import {
+  buildCategorizedFeedback,
+  progressVsPrevious,
+  rubricFromSession,
+} from '../lib/debriefHelpers.js';
 
 const DEFAULT_SCORE_HISTORY = [
   { label: 'S1', score: 58 },
@@ -7,6 +18,15 @@ const DEFAULT_SCORE_HISTORY = [
   { label: 'S3', score: 68 },
   { label: 'S4', score: 72 },
   { label: 'S5', score: 78 },
+];
+
+const RUBRIC_KEYS = [
+  { key: 'clarity', label: 'Clarity' },
+  { key: 'confidence', label: 'Confidence' },
+  { key: 'evidence', label: 'Evidence' },
+  { key: 'structure', label: 'Structure' },
+  { key: 'technicalDepth', label: 'Technical depth' },
+  { key: 'objectionHandling', label: 'Objection handling' },
 ];
 
 function formatEndedAt(d) {
@@ -51,6 +71,10 @@ export default function DebriefDashboard({
   isLoading = false,
   onReturn,
   onGoHistory,
+  sessionRecord = null,
+  allSessions = [],
+  patchSessionBookmark = null,
+  bookmarkUpdatingSessionId = null,
 }) {
   const chartGradientId = useId().replace(/:/g, '');
   const ended =
@@ -70,27 +94,94 @@ export default function DebriefDashboard({
   const pathScore = buildPath(scores, chartW, chartH, pad, maxY);
   const areaScore = buildAreaPath(pathScore, chartW, chartH, pad);
 
+  const gradingRow = useMemo(
+    () => ({
+      ...sessionRecord,
+      overall_score: sessionRecord?.overall_score ?? overallScore,
+      clarity_score: sessionRecord?.clarity_score,
+      confidence_score: sessionRecord?.confidence_score,
+      evidence_score: sessionRecord?.evidence_score,
+      structure_score: sessionRecord?.structure_score,
+      technical_depth_score: sessionRecord?.technical_depth_score,
+      objection_handling_score: sessionRecord?.objection_handling_score,
+      strengths: sessionRecord?.strengths,
+      weaknesses: sessionRecord?.weaknesses,
+      missed_opportunities: sessionRecord?.missed_opportunities,
+      next_steps: sessionRecord?.next_steps,
+    }),
+    [sessionRecord, overallScore],
+  );
+
+  const rubricScores = useMemo(() => rubricFromSession(gradingRow), [gradingRow]);
+  const categories = useMemo(
+    () => buildCategorizedFeedback(gradingRow, criticalFeedback),
+    [gradingRow, criticalFeedback],
+  );
+  const progress = useMemo(
+    () => progressVsPrevious(gradingRow, allSessions),
+    [gradingRow, allSessions],
+  );
+
+  const sessionId = gradingRow?.id ?? null;
+
+  const bookmarked = Boolean(sessionRecord?.bookmarked);
+
+  const bookmarkBusy =
+    Boolean(sessionId) && bookmarkUpdatingSessionId === sessionId;
+
+  const handleBookmarkClick = async () => {
+    if (!sessionId || !patchSessionBookmark || bookmarkBusy) return;
+    await patchSessionBookmark(sessionId, !bookmarked);
+  };
+
+  const handleExportPdf = () => {
+    window.print();
+  };
+
   return (
-    <div className="relative min-h-screen bg-slate-950 px-4 py-10 font-sans text-slate-50 sm:px-8">
+    <div className="relative min-h-screen bg-slate-950 px-4 py-10 font-sans text-slate-50 print:bg-white print:px-0 print:py-4 print:text-slate-950">
       <div
-        className="pointer-events-none fixed bottom-6 right-6 text-slate-600/80"
+        className="pointer-events-none fixed bottom-6 right-6 text-slate-600/80 no-print print:hidden"
         aria-hidden
       >
         <Sparkles className="h-5 w-5" strokeWidth={1.75} />
       </div>
 
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div
+        id="debrief-print-root"
+        className="mx-auto max-w-4xl space-y-8 print:max-w-none"
+      >
         <header className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">{headerTitle}</h1>
+          <h1 className="text-3xl font-bold tracking-tight print:text-2xl">
+            {headerTitle}
+          </h1>
           {scenario && (
-            <p className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+            <p className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-500 print:text-slate-600">
               {scenario}
             </p>
           )}
           {subtitle && (
-            <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+            <p className="mt-2 text-sm text-slate-400 print:text-slate-600">
+              {subtitle}
+            </p>
           )}
         </header>
+
+        {progress != null && progress.deltaPct != null && (
+          <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-center text-sm text-cyan-100 print:border-slate-300 print:bg-slate-100 print:text-slate-800">
+            {progress.deltaPct >= 0 ? 'You improved ' : 'Overall score changed by '}
+            <span className="font-semibold tabular-nums text-cyan-50 print:text-slate-900">
+              {progress.deltaPct >= 0
+                ? `${progress.deltaPct}%`
+                : `${Math.abs(progress.deltaPct)}%`}
+            </span>
+            {progress.deltaPct >= 0
+              ? ` since your previous session`
+              : ` compared with your previous session`}
+            {' — '}
+            overall {progress.prevScore} → {progress.currentScore}.
+          </div>
+        )}
 
         <div
           className={[
@@ -98,47 +189,130 @@ export default function DebriefDashboard({
             isLoading ? 'animate-pulse opacity-80' : '',
           ].join(' ')}
         >
-          <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-emerald-950/50 to-slate-900/40 p-6 backdrop-blur-md">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+          <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-emerald-950/50 to-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 print:text-slate-600">
               Overall score
             </p>
-            <p className="mt-2 text-4xl font-semibold tabular-nums text-green-400 drop-shadow-[0_0_12px_rgba(74,222,128,0.35)]">
+            <p className="mt-2 text-4xl font-semibold tabular-nums text-green-400 drop-shadow-[0_0_12px_rgba(74,222,128,0.35)] print:text-emerald-700 print:drop-shadow-none">
               {overallScore}/100
             </p>
           </div>
 
-          <div className="relative rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md">
+          <div className="relative rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md print:border-slate-200 print:bg-white">
             <AlertTriangle
-              className="absolute right-4 top-4 h-4 w-4 text-amber-500"
+              className="absolute right-4 top-4 h-4 w-4 text-amber-500 print:hidden"
               strokeWidth={2}
               aria-hidden
             />
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 print:text-slate-600">
               Filler words
             </p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-50">
+            <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-50 print:text-slate-900">
               {fillerDisplay}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 print:text-slate-600">
               Total count: {fillerWordCount}
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md print:border-slate-200 print:bg-white">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400 print:text-slate-600">
               Duration
             </p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-50">
+            <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-50 print:text-slate-900">
               {durationLabel}
             </p>
           </div>
         </div>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md">
-          <h2 className="text-lg font-semibold tracking-tight">
+        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50">
+          <h2 className="text-lg font-semibold tracking-tight print:text-base">
+            Scoring breakdown
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {RUBRIC_KEYS.map(({ key, label }) => (
+              <div
+                key={key}
+                className="rounded-xl border border-slate-700/80 bg-slate-950/40 p-4 print:border-slate-200 print:bg-white"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 print:text-slate-600">
+                    {label}
+                  </p>
+                  <p className="text-lg font-bold tabular-nums text-cyan-300 print:text-slate-900">
+                    {rubricScores[key]}/100
+                  </p>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800 print:bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 print:from-slate-700 print:to-slate-700"
+                    style={{ width: `${rubricScores[key]}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2">
+          {[
+            {
+              title: 'Strengths',
+              items: categories.strengths,
+              border: 'border-emerald-500/40',
+              bg: 'from-emerald-950/40 to-slate-900/30',
+            },
+            {
+              title: 'Weaknesses',
+              items: categories.weaknesses,
+              border: 'border-rose-500/35',
+              bg: 'from-rose-950/40 to-slate-900/30',
+            },
+            {
+              title: 'Missed opportunities',
+              items: categories.missedOpportunities,
+              border: 'border-amber-500/35',
+              bg: 'from-amber-950/40 to-slate-900/30',
+            },
+            {
+              title: 'What to improve (next steps)',
+              items: categories.nextSteps,
+              border: 'border-indigo-500/35',
+              bg: 'from-indigo-950/40 to-slate-900/30',
+            },
+          ].map(({ title, items, border, bg }) => (
+            <div
+              key={title}
+              className={[
+                'rounded-xl border bg-gradient-to-br p-5 backdrop-blur-md',
+                border,
+                bg,
+                'print:border-slate-200 print:bg-white',
+              ].join(' ')}
+            >
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300 print:text-slate-800">
+                {title}
+              </h2>
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-slate-200 print:text-slate-800">
+                {items?.length ? (
+                  items.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))
+                ) : (
+                  <li className="text-slate-500 print:text-slate-500">
+                    No notes for this category yet.
+                  </li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50">
+          <h2 className="text-lg font-semibold tracking-tight print:text-base">
             Critical feedback
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-200">
+          <p className="mt-3 text-sm leading-relaxed text-slate-200 print:text-slate-800">
             {criticalFeedback ||
               'No feedback recorded for this session.'}
           </p>
@@ -146,12 +320,12 @@ export default function DebriefDashboard({
 
         <section
           className={[
-            'rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md',
+            'rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50',
             isLoading ? 'animate-pulse' : '',
           ].join(' ')}
         >
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-tight">
+            <h2 className="text-lg font-semibold tracking-tight print:text-base">
               Score trend (last {history.length} sessions)
               {isLoading && (
                 <span className="ml-2 text-xs font-normal text-slate-500">
@@ -159,8 +333,8 @@ export default function DebriefDashboard({
                 </span>
               )}
             </h2>
-            <span className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            <span className="flex items-center gap-2 text-xs text-slate-400 print:text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] print:shadow-none" />
               Overall score
             </span>
           </div>
@@ -168,7 +342,7 @@ export default function DebriefDashboard({
           <div className="overflow-x-auto">
             <svg
               viewBox={`0 0 ${chartW} ${chartH}`}
-              className="h-auto w-full min-w-[520px]"
+              className="h-auto w-full min-w-[520px] print:min-w-0"
               role="img"
               aria-label="Overall score progression for last sessions"
             >
@@ -218,6 +392,7 @@ export default function DebriefDashboard({
                       y2={py}
                       stroke="rgb(30 41 59 / 0.45)"
                       strokeWidth={1}
+                      className="print:stroke-slate-300"
                     />
                     <text
                       x={pad - 8}
@@ -225,6 +400,7 @@ export default function DebriefDashboard({
                       textAnchor="end"
                       fill="rgb(148 163 184)"
                       fontSize="10"
+                      className="print:fill-slate-600"
                     >
                       {y}
                     </text>
@@ -248,6 +424,7 @@ export default function DebriefDashboard({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter={`url(#lineGlow-${chartGradientId})`}
+                className="print:stroke-slate-800 print:[filter:none]"
               />
 
               {history.map((p, i) => {
@@ -267,6 +444,7 @@ export default function DebriefDashboard({
                       textAnchor="middle"
                       fill="rgb(148 163 184)"
                       fontSize="10"
+                      className="print:fill-slate-600"
                     >
                       {p.label}
                     </text>
@@ -277,7 +455,47 @@ export default function DebriefDashboard({
           </div>
         </section>
 
-        <div className="flex flex-wrap justify-center gap-3 pb-8">
+        <div className="no-print flex flex-wrap justify-center gap-3 pb-8 print:hidden">
+          <button
+            type="button"
+            disabled={!sessionId || !patchSessionBookmark || bookmarkBusy}
+            onClick={() => void handleBookmarkClick()}
+            title={
+              !sessionId
+                ? 'Bookmark is available after the session is saved.'
+                : undefined
+            }
+            className={[
+              'flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-semibold transition-colors',
+              bookmarked
+                ? 'border-amber-500/60 bg-amber-500/15 text-amber-100'
+                : 'border-slate-700 bg-slate-900/40 text-slate-100 hover:border-slate-500',
+              !sessionId || !patchSessionBookmark
+                ? 'pointer-events-none opacity-40'
+                : '',
+              bookmarkBusy ? 'opacity-70' : '',
+            ].join(' ')}
+          >
+            {bookmarkBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Bookmark
+                className="h-4 w-4"
+                strokeWidth={2}
+                fill={bookmarked ? 'currentColor' : 'none'}
+                aria-hidden
+              />
+            )}
+            {bookmarked ? 'Bookmarked' : 'Bookmark debrief'}
+          </button>
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            className="flex items-center gap-2 rounded-xl border border-blue-700/70 bg-blue-950/60 px-6 py-3 text-sm font-semibold text-blue-50 transition-colors hover:border-blue-500 hover:bg-blue-900/50"
+          >
+            <FileDown className="h-4 w-4" aria-hidden />
+            Export debrief as PDF
+          </button>
           <button
             type="button"
             onClick={() => onReturn?.()}

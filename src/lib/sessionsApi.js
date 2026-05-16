@@ -38,6 +38,18 @@ export function fetchSession(id, accessToken) {
   return request(`/api/sessions/${id}`, accessToken, { method: 'GET' });
 }
 
+export async function setSessionBookmark(sessionId, bookmarked, accessToken) {
+  if (!sessionId) throw new Error('Session id required');
+  if (!accessToken) throw new Error('Not signed in');
+  if (!useApiRoutes()) {
+    return sessionsDb.updateSessionBookmark(sessionId, bookmarked);
+  }
+  return request(`/api/sessions/${sessionId}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ bookmarked }),
+  });
+}
+
 export async function createSession(payload, accessToken, userId) {
   if (!useApiRoutes()) {
     const { session } = await sessionsDb.insertSession(payload, userId);
