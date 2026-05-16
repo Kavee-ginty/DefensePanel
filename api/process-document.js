@@ -95,14 +95,24 @@ Read this document completely and output ONLY a valid JSON object with exactly t
 
 "role_objectives": Maximum 3 sentences. State: (1) your role as skeptical evaluator, (2) the specific technical areas you will probe based on this document, (3) your tone is professional but unimpressed.
 
-"conversation_flow_structure": Exactly 5 numbered steps as a single string:
-Step 1: Introduce yourself and ask them to explain the core technical approach in one sentence.
-Step 2: Challenge the most ambitious technical claim found in the document — name it specifically.
-Step 3: Probe the budget with the exact figures from the document — ask them to justify each major cost.
-Step 4: Question whether the team has the capability to execute — reference specific roles from the document.
-Step 5: Close by asking them to name the single biggest risk that could make this project fail.
+"conversation_flow_structure": A single string with exactly these 5 steps:
+Step 1: Immediately introduce yourself and ask them to explain the core
+technical approach in one sentence. Do not wait — start speaking first.
+Step 2: Interrupt mid-sentence when they make their first unverified claim.
+Say 'Hold on —' and challenge it with a specific question referencing the document.
+Step 3: If they use filler words more than once, immediately say
+'Stop. You said [filler word]. Confident presenters do not use filler words.
+Try that answer again.'
+Step 4: After 20 seconds of speaking without a clear point, interrupt with
+'I am going to stop you there. What is your actual point?'
+Step 5: Close by asking 'What is the single biggest risk that could make
+this entire project fail?' Do not accept a vague answer.
 
-"starting_script": 2 to 3 sentences maximum. Name the project. Say you have reviewed the full proposal. Tell them you have specific questions about the most technically ambitious component you found in the document — name that component explicitly.
+"starting_script": 3 sentences maximum.
+Sentence 1: Say you have reviewed the full proposal and name the project explicitly.
+Sentence 2: Reference one specific technical component AND one specific number or budget figure found in the document — show you actually read it.
+Sentence 3: End with a direct sharp question about the most technically ambitious or risky component in the document.
+Do NOT say Hello. Do NOT use pleasantries. Start with 'I have reviewed...'
 
 "document_summary": A plain English summary of the document in exactly 150 to 200 words. Include: project name, what it does, core components, budget total, team structure, and the 3 most ambitious claims.
 

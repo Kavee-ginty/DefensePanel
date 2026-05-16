@@ -24,6 +24,9 @@ export async function startSession(payload) {
     const formData = new FormData()
     formData.append('system_prompt', payload.system_prompt)
     formData.append('greeting', payload.greeting || '')
+    formData.append('conversation_flow', payload.conversation_flow || '')
+    formData.append('starting_script', payload.starting_script || '')
+    formData.append('max_session_length', payload.max_session_length || '5')
     formData.append('name', 'defense-panel-' + Date.now())
     const res = await fetch('/api/start-session', {
       method: 'POST',

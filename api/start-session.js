@@ -42,10 +42,29 @@ function getField(fields, name) {
   return v?.toString() ?? ''
 }
 
-async function createAgent({ avatar_id, name, system_prompt, greeting }) {
-  const body = { avatar_id, name, system_prompt }
+async function createAgent({
+  avatar_id,
+  name,
+  system_prompt,
+  greeting,
+  conversational_flow,
+  starting_script,
+  max_session_length_minutes,
+}) {
+  const body = {
+    avatar_id,
+    name,
+    system_prompt,
+    max_session_length_minutes,
+  }
   if (greeting && String(greeting).trim()) {
     body.greeting = String(greeting).trim()
+  }
+  if (conversational_flow && String(conversational_flow).trim()) {
+    body.conversational_flow = String(conversational_flow).trim()
+  }
+  if (starting_script && String(starting_script).trim()) {
+    body.starting_script = String(starting_script).trim()
   }
 
   const response = await fetch(BEYOND_AGENTS_URL, {
@@ -89,14 +108,26 @@ export default async function handler(req, res) {
     const contentType = req.headers['content-type'] || ''
     let system_prompt = ''
     let greeting = ''
+    let conversation_flow = ''
+    let starting_script = ''
     let name = `agent-${Date.now()}`
+    let max_session_length = 5
 
     if (contentType.includes('multipart/form-data')) {
       const { fields } = await parseForm(req)
       system_prompt = getField(fields, 'system_prompt')
       greeting = getField(fields, 'greeting')
+      conversation_flow = getField(fields, 'conversation_flow')
+      starting_script = getField(fields, 'starting_script')
       const nameField = getField(fields, 'name')
       if (nameField) name = nameField
+      max_session_length = parseInt(
+        getField(fields, 'max_session_length') || '5',
+        10,
+      )
+      if (!Number.isFinite(max_session_length)) {
+        max_session_length = 5
+      }
     } else {
       throw new Error('Expected multipart form data for /api/start-session')
     }
@@ -117,6 +148,9 @@ export default async function handler(req, res) {
       name,
       system_prompt: String(system_prompt).trim(),
       greeting,
+      conversational_flow: conversation_flow,
+      starting_script,
+      max_session_length_minutes: max_session_length,
     })
 
     logAgentKeys('agent', agentData)
