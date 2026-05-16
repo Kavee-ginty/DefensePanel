@@ -13,7 +13,7 @@ npm install
 cp .env.example .env
 ```
 
-Fill in `.env` from `.env.example` (Supabase, OpenAI, Beyond Presence). Run `supabase/pitch_sessions.sql` in Supabase, enable **Email** auth. For briefing deploy and live agents, also run `npx vercel dev --listen 3000` in a second terminal (see REQUIREMENTS.md).
+Fill in `.env` from `.env.example` (Supabase, OpenAI, Beyond Presence). Run `supabase/pitch_sessions.sql` in Supabase (and optionally `supabase/pitch_sessions_extended.sql` for dashboard/debrief enrichment fields). Enable **Email** auth. For briefing deploy and live agents, also run `npx vercel dev --listen 3000` in a second terminal (see REQUIREMENTS.md).
 
 ## Run
 

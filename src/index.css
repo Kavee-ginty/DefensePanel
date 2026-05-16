@@ -14,6 +14,18 @@ body {
   background-color: rgb(59 130 246 / 0.3);
 }
 
+@media print {
+  header {
+    display: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding-top: 0 !important;
+  }
+}
+
 .docx-preview-host {
   color: rgb(24 24 27);
   min-height: 100%;

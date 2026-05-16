@@ -5,9 +5,6 @@ import {
   modeToScenarioType,
 } from './sessionUtils.js';
 
-const SESSION_COLUMNS =
-  'id, user_id, created_at, scenario_type, duration_seconds, filler_word_count, critical_feedback, overall_score';
-
 const LIST_LIMIT = 25;
 
 function assertConfigured() {
@@ -45,7 +42,7 @@ export async function listSessions() {
 
   const { data, error } = await supabase
     .from('pitch_sessions')
-    .select(SESSION_COLUMNS)
+    .select('*')
     .order('created_at', { ascending: false })
     .limit(LIST_LIMIT);
 
@@ -59,7 +56,7 @@ export async function getSession(id) {
   const [sessionResult, chart] = await Promise.all([
     supabase
       .from('pitch_sessions')
-      .select(SESSION_COLUMNS)
+      .select('*')
       .eq('id', id)
       .maybeSingle(),
     fetchRecentForChart(),
@@ -69,6 +66,22 @@ export async function getSession(id) {
   if (!sessionResult.data) throw new Error('Session not found');
 
   return { session: sessionResult.data, scoreHistory: chart };
+}
+
+export async function updateSessionBookmark(id, bookmarked) {
+  assertConfigured();
+
+  const { data, error } = await supabase
+    .from('pitch_sessions')
+    .update({ bookmarked })
+    .eq('id', id)
+    .select('*')
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Session not found');
+
+  return { session: data };
 }
 
 export async function insertSession(payload, userId) {
@@ -99,7 +112,7 @@ export async function insertSession(payload, userId) {
   const { data, error } = await supabase
     .from('pitch_sessions')
     .insert(row)
-    .select(SESSION_COLUMNS)
+    .select('*')
     .single();
 
   if (error) throw new Error(error.message);

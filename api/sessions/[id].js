@@ -1,12 +1,9 @@
 import { getSupabaseAdmin, getUserFromRequest, json } from '../lib/supabaseAdmin.js';
 
-const SESSION_COLUMNS =
-  'id, user_id, created_at, scenario_type, duration_seconds, filler_word_count, critical_feedback, overall_score';
-
 export default async function handler(req, res) {
   try {
-    if (req.method !== 'GET') {
-      res.setHeader('Allow', 'GET');
+    if (req.method !== 'GET' && req.method !== 'PATCH') {
+      res.setHeader('Allow', 'GET, PATCH');
       return json(res, 405, { error: 'Method not allowed' });
     }
 
@@ -17,9 +14,42 @@ export default async function handler(req, res) {
     if (!id) return json(res, 400, { error: 'Session id required' });
 
     const admin = getSupabaseAdmin();
+
+    if (req.method === 'PATCH') {
+      let body = {};
+      try {
+        body =
+          typeof req.body === 'string' ? JSON.parse(req.body) : req.body ?? {};
+      } catch {
+        return json(res, 400, { error: 'Invalid JSON body' });
+      }
+
+      if (typeof body.bookmarked !== 'boolean') {
+        return json(res, 400, {
+          error: 'Body must include bookmarked: boolean',
+        });
+      }
+
+      const { data, error } = await admin
+        .from('pitch_sessions')
+        .update({ bookmarked: body.bookmarked })
+        .eq('id', id)
+        .eq('user_id', auth.user.id)
+        .select('*')
+        .maybeSingle();
+
+      if (error) {
+        console.error('[sessions/id PATCH]', error);
+        return json(res, 500, { error: error.message });
+      }
+      if (!data) return json(res, 404, { error: 'Session not found' });
+
+      return json(res, 200, { session: data });
+    }
+
     const { data, error } = await admin
       .from('pitch_sessions')
-      .select(SESSION_COLUMNS)
+      .select('*')
       .eq('id', id)
       .eq('user_id', auth.user.id)
       .maybeSingle();

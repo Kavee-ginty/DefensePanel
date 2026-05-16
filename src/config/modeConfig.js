@@ -1,8 +1,6 @@
-import { PDF_ONLY_ACCEPT, PITCH_ACCEPT } from './allowedAccept.js';
+import { PITCH_ACCEPT } from './allowedAccept.js';
 
-const PDF_FILE_ERROR = 'Please upload a PDF file.';
 const MULTI_FILE_ERROR = 'Please upload a PDF, DOCX, or PPTX file.';
-const PDF_DROPZONE = 'PDF only';
 const PITCH_DROPZONE = 'PDF, DOCX, or PPTX';
 
 export const MODE_CONFIG = {
@@ -36,13 +34,13 @@ export const MODE_CONFIG = {
     title: 'Academic Viva',
     briefingTitle: 'Prepare for your viva',
     briefingDescription:
-      'Upload your thesis or research paper as a PDF. Examiners will challenge methodology, claims, and conclusions.',
-    uploadHint: 'Upload your thesis PDF',
-    dropzoneSubtext: PDF_DROPZONE,
-    fileError: PDF_FILE_ERROR,
+      'Upload your thesis or research paper as a PDF, Word document, or PowerPoint. Examiners will challenge methodology, claims, and conclusions.',
+    uploadHint: 'Upload your thesis document',
+    dropzoneSubtext: PITCH_DROPZONE,
+    fileError: MULTI_FILE_ERROR,
     submitLabel: 'Initialize Panel',
     arenaSubtitle: 'Academic Viva',
-    accept: PDF_ONLY_ACCEPT,
+    accept: PITCH_ACCEPT,
     panelists: [
       {
         id: 'examiner',
@@ -61,13 +59,13 @@ export const MODE_CONFIG = {
     title: 'Technical Interview',
     briefingTitle: 'Brief the hiring panel',
     briefingDescription:
-      'Upload your CV as a PDF. The panel will probe resume claims and run spontaneous technical challenges.',
-    uploadHint: 'Upload your CV PDF',
-    dropzoneSubtext: PDF_DROPZONE,
-    fileError: PDF_FILE_ERROR,
+      'Upload your CV as a PDF, Word document, or PowerPoint. The panel will probe resume claims and run spontaneous technical challenges.',
+    uploadHint: 'Upload your CV or portfolio document',
+    dropzoneSubtext: PITCH_DROPZONE,
+    fileError: MULTI_FILE_ERROR,
     submitLabel: 'Start Interview',
     arenaSubtitle: 'Technical Interview',
-    accept: PDF_ONLY_ACCEPT,
+    accept: PITCH_ACCEPT,
     panelists: [
       {
         id: 'hm',

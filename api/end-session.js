@@ -146,9 +146,7 @@ ${mergedTranscriptText}`,
     const { data: session, error } = await admin
       .from('pitch_sessions')
       .insert(row)
-      .select(
-        'id, user_id, created_at, scenario_type, duration_seconds, filler_word_count, critical_feedback, overall_score',
-      )
+      .select('*')
       .single()
 
     if (error) {

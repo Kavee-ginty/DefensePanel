@@ -2,6 +2,7 @@ import { LogOut, Shield } from 'lucide-react';
 
 const MARKETING_LINKS = [
   { id: 'home', label: 'Home' },
+  { id: 'dashboard', label: 'Dashboard' },
   { id: 'about', label: 'About' },
   { id: 'contact', label: 'Contact' },
   { id: 'pricing', label: 'Pricing' },
