@@ -1,0 +1,9 @@
+---
+description: MVP speed tactics—mock data and demo fallbacks
+alwaysApply: true
+---
+
+# Hackathon Execution Directives
+
+1. **Mock First:** If I ask you to build a UI component that relies on backend data we haven't built yet, hardcode a realistic mock JSON object in the frontend so we can visualize the UI immediately.
+2. **Do Not Get Stuck:** If a complex WebRTC or audio routing issue is taking more than 3 prompts to fix, suggest a simpler "smoke and mirrors" workaround that will look good for a 5-minute stage demo.
