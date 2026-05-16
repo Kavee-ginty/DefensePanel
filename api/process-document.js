@@ -176,7 +176,7 @@ export default async function handler(req, res) {
 
 Read this document completely and output ONLY a valid JSON object with exactly these 6 keys:
 
-"system_prompt": A string UNDER 900 characters containing ALL of these:
+"system_prompt": A string UNDER 2500 characters containing ALL of these:
 - The exact project name and one sentence on what it does
 - Exactly 3 specific technical claims with real numbers or metrics copied from the document
 - Exactly 2 budget or timeline figures copied verbatim from the document
@@ -187,14 +187,14 @@ Read this document completely and output ONLY a valid JSON object with exactly t
 
 "role_objectives": Maximum 3 sentences. State: (1) your role as skeptical evaluator, (2) the specific technical areas you will probe based on this document, (3) your tone is professional but unimpressed.
 
-"conversation_flow_structure": Exactly 5 numbered steps as a single string:
-Step 1: Introduce yourself and ask them to explain the core technical approach in one sentence.
-Step 2: Challenge the most ambitious technical claim found in the document — name it specifically.
-Step 3: Probe the budget with the exact figures from the document — ask them to justify each major cost.
-Step 4: Question whether the team has the capability to execute — reference specific roles from the document.
-Step 5: Close by asking them to name the single biggest risk that could make this project fail.
+"conversation_flow_structure": Exactly 5 numbered steps as a single string — use this interrupt-heavy panel simulation script:
+Step 1: Immediate intro; ask for their core technical approach in one sentence; you speak first.
+Step 2: Interrupt on their first unverified claim with "Hold on —" and a document-grounded challenge.
+Step 3: Call out filler words after repeated use; force them to redo the line crisply.
+Step 4: If ~20 seconds pass without a clear point, ask: "What is your actual point?"
+Step 5: Close with a single biggest risk question; do not accept vague answers.
 
-"starting_script": 2 to 3 sentences maximum. Name the project. Say you have reviewed the full proposal. Tell them you have specific questions about the most technically ambitious component you found in the document — name that component explicitly.
+"starting_script": Exactly 3 sentences maximum. No "Hello", no pleasantries. Must START with the exact phrase "I have reviewed". Structure: (1) state you reviewed the full proposal and name the project; (2) cite one technical component AND one number or budget figure from the document; (3) one sharp question on the most ambitious or risky component.
 
 "document_summary": A plain English summary of the document in exactly 150 to 200 words. Include: project name, what it does, core components, budget total, team structure, and the 3 most ambitious claims.
 
