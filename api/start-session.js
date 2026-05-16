@@ -15,6 +15,12 @@ function logAgentKeys(label, agent) {
   }
 }
 
+/** @param {unknown} s */
+function preview50(s) {
+  const str = typeof s === 'string' ? s : String(s ?? '')
+  return str.slice(0, 50)
+}
+
 export const config = {
   api: {
     bodyParser: false,
@@ -44,28 +50,33 @@ function getField(fields, name) {
 
 async function createAgent({
   avatar_id,
-  name,
+  agentName,
   system_prompt,
-  greeting,
-  conversational_flow,
+  conversation_flow,
   starting_script,
-  max_session_length_minutes,
+  greeting,
+  max_session_length,
 }) {
-  const body = {
+  const beyondPresenceBody = {
     avatar_id,
-    name,
+    name: agentName,
     system_prompt,
-    max_session_length_minutes,
+    conversational_flow: conversation_flow,
+    starting_script,
+    greeting,
+    max_session_length_minutes: max_session_length,
   }
-  if (greeting && String(greeting).trim()) {
-    body.greeting = String(greeting).trim()
-  }
-  if (conversational_flow && String(conversational_flow).trim()) {
-    body.conversational_flow = String(conversational_flow).trim()
-  }
-  if (starting_script && String(starting_script).trim()) {
-    body.starting_script = String(starting_script).trim()
-  }
+
+  console.log('Creating agent with:', {
+    system_prompt: preview50(system_prompt),
+    conversational_flow: preview50(conversation_flow),
+    starting_script: preview50(starting_script),
+    greeting: preview50(greeting),
+    max_session_length,
+  })
+
+  console.log('=== BEYOND PRESENCE REQUEST BODY ===')
+  console.log(JSON.stringify(beyondPresenceBody, null, 2))
 
   const response = await fetch(BEYOND_AGENTS_URL, {
     method: 'POST',
@@ -73,26 +84,39 @@ async function createAgent({
       'x-api-key': process.env.BEYOND_PRESENCE_API_KEY,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(beyondPresenceBody),
   })
 
-  const payload = await response.json().catch(() => null)
+  console.log('=== BEYOND PRESENCE RAW RESPONSE ===')
+  const rawText = await response.text()
+  console.log(rawText)
+  let beyondResponse
+  try {
+    beyondResponse = JSON.parse(rawText)
+  } catch {
+    beyondResponse = null
+  }
+  console.log(
+    'Beyond Presence response:',
+    JSON.stringify(beyondResponse, null, 2),
+  )
+
   if (!response.ok) {
-    console.error('Beyond Presence agent creation failed', payload)
+    console.error('Beyond Presence agent creation failed', beyondResponse)
     const extra =
-      payload && typeof payload === 'object'
-        ? JSON.stringify(payload)
-        : String(payload ?? '')
+      beyondResponse && typeof beyondResponse === 'object'
+        ? JSON.stringify(beyondResponse)
+        : String(beyondResponse ?? '')
     throw new Error(
-      payload?.error?.message ||
-        payload?.message ||
+      beyondResponse?.error?.message ||
+        beyondResponse?.message ||
         (extra !== '{}' && extra !== 'null'
           ? `Beyond Presence ${response.status}: ${extra}`
           : `Beyond Presence failed with ${response.status}`),
     )
   }
 
-  return payload
+  return beyondResponse
 }
 
 /**
@@ -106,21 +130,22 @@ export default async function handler(req, res) {
 
   try {
     const contentType = req.headers['content-type'] || ''
+    /** Same as formData.get('...') || '' */
     let system_prompt = ''
     let greeting = ''
     let conversation_flow = ''
     let starting_script = ''
-    let name = `agent-${Date.now()}`
+    let agentName = 'defense-panel-' + Date.now()
     let max_session_length = 5
 
     if (contentType.includes('multipart/form-data')) {
       const { fields } = await parseForm(req)
-      system_prompt = getField(fields, 'system_prompt')
-      greeting = getField(fields, 'greeting')
-      conversation_flow = getField(fields, 'conversation_flow')
-      starting_script = getField(fields, 'starting_script')
-      const nameField = getField(fields, 'name')
-      if (nameField) name = nameField
+      system_prompt = getField(fields, 'system_prompt') || ''
+      greeting = getField(fields, 'greeting') || ''
+      conversation_flow = getField(fields, 'conversation_flow') || ''
+      starting_script = getField(fields, 'starting_script') || ''
+      agentName =
+        getField(fields, 'name') || 'defense-panel-' + Date.now()
       max_session_length = parseInt(
         getField(fields, 'max_session_length') || '5',
         10,
@@ -131,6 +156,13 @@ export default async function handler(req, res) {
     } else {
       throw new Error('Expected multipart form data for /api/start-session')
     }
+
+    console.log('=== INCOMING FORMDATA ===')
+    console.log('system_prompt length:', (system_prompt || '').length)
+    console.log('conversation_flow:', conversation_flow)
+    console.log('starting_script:', starting_script)
+    console.log('greeting:', greeting)
+    console.log('max_session_length:', max_session_length)
 
     if (!system_prompt || !String(system_prompt).trim()) {
       throw new Error('system_prompt is required')
@@ -145,12 +177,12 @@ export default async function handler(req, res) {
 
     const agentData = await createAgent({
       avatar_id,
-      name,
+      agentName,
       system_prompt: String(system_prompt).trim(),
-      greeting,
-      conversational_flow: conversation_flow,
+      conversation_flow,
       starting_script,
-      max_session_length_minutes: max_session_length,
+      greeting,
+      max_session_length,
     })
 
     logAgentKeys('agent', agentData)
@@ -166,7 +198,7 @@ export default async function handler(req, res) {
     const agent_name =
       agentData?.name != null && agentData?.name !== ''
         ? agentData.name
-        : name
+        : agentName
 
     return res.status(200).json({
       success: true,

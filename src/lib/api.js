@@ -28,6 +28,12 @@ export async function startSession(payload) {
     formData.append('starting_script', payload.starting_script || '')
     formData.append('max_session_length', payload.max_session_length || '5')
     formData.append('name', 'defense-panel-' + Date.now())
+
+    console.log('=== SENDING TO START-SESSION ===')
+    for (const [key, value] of formData.entries()) {
+      console.log(key, ':', typeof value === 'string' ? value.slice(0, 80) : value)
+    }
+
     const res = await fetch('/api/start-session', {
       method: 'POST',
       body: formData,

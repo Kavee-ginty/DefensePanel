@@ -144,6 +144,12 @@ export default function ContextUpload() {
       setLoadingMessage('> The panel is ready. Good luck.')
       await sleep(1500)
 
+      console.log('=== PROMPTS BEING PASSED TO startSession ===')
+      console.log('system_prompt:', editedSystemPrompt?.slice(0, 80))
+      console.log('conversation_flow:', editedConvFlow?.slice(0, 80))
+      console.log('starting_script:', editedStartingScript?.slice(0, 80))
+      console.log('greeting:', previewPrompts?.greeting?.slice(0, 80))
+
       const sessionResult = await startSession({
         system_prompt: editedSystemPrompt,
         greeting: previewPrompts.greeting ?? '',
