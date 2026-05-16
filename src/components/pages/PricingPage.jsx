@@ -1,5 +1,11 @@
+import { useState } from 'react';
 import { Check } from 'lucide-react';
+import toast from 'react-hot-toast';
 import MarketingLayout from '../MarketingLayout.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+
+const DODO_API_URL =
+  import.meta.env.VITE_DODO_API_URL || 'http://localhost:8080';
 
 const TIERS = [
   {
@@ -49,6 +55,40 @@ const TIERS = [
 ];
 
 export default function PricingPage({ onStartSimulation }) {
+  const { user } = useAuth();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  async function handleProCheckout(userEmail) {
+    const email = typeof userEmail === 'string' ? userEmail.trim() : '';
+    if (!email) {
+      toast.error('Could not read your email. Try signing in again.');
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch(`${DODO_API_URL}/api/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userEmail: email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkout_url) {
+        const msg =
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || 'Checkout failed';
+        throw new Error(msg);
+      }
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      console.error('[PricingPage] checkout', err);
+      toast.error(err?.message || 'Could not start checkout');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
   return (
     <MarketingLayout>
       <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
@@ -94,12 +134,20 @@ export default function PricingPage({ onStartSimulation }) {
               </ul>
               <button
                 type="button"
-                onClick={() => onStartSimulation?.()}
+                disabled={tier.name === 'Pro' && checkoutLoading}
+                onClick={() => {
+                  if (tier.name === 'Pro') {
+                    void handleProCheckout(user?.email);
+                  } else {
+                    onStartSimulation?.();
+                  }
+                }}
                 className={[
                   'mt-8 w-full rounded-xl py-3 text-sm font-semibold transition-colors',
                   tier.highlighted
                     ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500'
                     : 'border border-zinc-700 bg-zinc-950 text-zinc-200 hover:border-zinc-500',
+                  tier.name === 'Pro' && checkoutLoading ? 'opacity-70' : '',
                 ].join(' ')}
               >
                 {tier.cta}
