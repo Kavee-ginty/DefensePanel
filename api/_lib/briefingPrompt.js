@@ -17,10 +17,20 @@ const DIFFICULTY_LINES = {
 const PERSONA_LINES = {
   investor:
     'Panel persona — Investor: prioritize traction, market size, revenue model, defensibility, unit economics, and competitive moat.',
+  cto:
+    'Panel persona — CTO: prioritize architecture, security, scalability, technical debt, engineering trade-offs, and feasibility of the product roadmap.',
   cfo:
     'Panel persona — CFO: prioritize budgets, burn, runway, cost structure, financial assumptions, and risk to cash flow.',
   professor:
     'Panel persona — Professor: prioritize methodology, evidence, limitations, citations to the document, and intellectual rigor.',
+  research_critic:
+    'Panel persona — Research Critic: stress-test claims, novelty, experimental design, statistical soundness, and alternative explanations.',
+  external_examiner:
+    'Panel persona — External Examiner: behave as an independent assessor; probe depth of understanding, synthesis across the work, and defense of conclusions under formal examination standards.',
+  interviewer:
+    'Panel persona — Interviewer: run a structured technical interview; probe problem-solving, code/systems thinking, and clarity under time pressure.',
+  hiring_manager:
+    'Panel persona — Hiring Manager: evaluate role fit, ownership, collaboration, communication, and impact narratives aligned to the job and team.',
 }
 
 const GOAL_LINES = {
@@ -40,7 +50,7 @@ const MAX_COMPOSED_SYSTEM_PROMPT = 14_000
  * @typedef {{
  *   difficulty: 'friendly'|'standard'|'brutal',
  *   sessionMinutes: number,
- *   panelPersona: 'investor'|'cfo'|'professor',
+ *   panelPersona: 'investor'|'cto'|'cfo'|'professor'|'research_critic'|'external_examiner'|'interviewer'|'hiring_manager',
  *   practiceGoals: string[],
  *   visionMode: boolean,
  * }} BriefingSetup
@@ -72,9 +82,19 @@ function normalizeBriefingSetup(s) {
   const difficulty = ['friendly', 'standard', 'brutal'].includes(d)
     ? /** @type {'friendly'|'standard'|'brutal'} */ (d)
     : 'standard'
+  const allowedPersonas = [
+    'investor',
+    'cto',
+    'cfo',
+    'professor',
+    'research_critic',
+    'external_examiner',
+    'interviewer',
+    'hiring_manager',
+  ]
   const pp = String(s.panelPersona || 'investor')
-  const panelPersona = ['investor', 'cfo', 'professor'].includes(pp)
-    ? /** @type {'investor'|'cfo'|'professor'} */ (pp)
+  const panelPersona = allowedPersonas.includes(pp)
+    ? /** @type {BriefingSetup['panelPersona']} */ (pp)
     : 'investor'
   const practiceGoals = Array.isArray(s.practiceGoals)
     ? s.practiceGoals.filter((g) => typeof g === 'string' && g.trim())

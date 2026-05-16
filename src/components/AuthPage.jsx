@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signInWithGoogle, signUp } = useAuth();
   const [tab, setTab] = useState('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -28,6 +28,18 @@ export default function AuthPage() {
     }
     setLoading(true);
     const { error: authError } = await signIn(email.trim(), password);
+    setLoading(false);
+    if (authError) setError(authError.message);
+  };
+
+  const handleGoogleLogin = async () => {
+    resetForm();
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured. Add credentials to your .env file.');
+      return;
+    }
+    setLoading(true);
+    const { error: authError } = await signInWithGoogle();
     setLoading(false);
     if (authError) setError(authError.message);
   };
@@ -115,6 +127,34 @@ export default function AuthPage() {
 
           {tab === 'login' ? (
             <form onSubmit={handleLogin} className="space-y-4">
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-white py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-100 disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2
+                    className="h-4 w-4 animate-spin text-zinc-700"
+                    aria-hidden
+                  />
+                ) : (
+                  <span
+                    className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white"
+                    aria-hidden
+                  >
+                    G
+                  </span>
+                )}
+                Sign in with Google
+              </button>
+
+              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-zinc-500">
+                <span className="h-px flex-1 bg-zinc-800" />
+                Or
+                <span className="h-px flex-1 bg-zinc-800" />
+              </div>
+
               <div>
                 <label htmlFor="login-email" className="sr-only">
                   Email

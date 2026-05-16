@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MessageSquare, Play, Timer } from 'lucide-react';
+import { MessageSquare, Play } from 'lucide-react';
 import { getModeConfig } from '../config/modeConfig.js';
 import { getBeyEmbedUrl } from '../config/beyEmbeds.js';
 import BeyPanelFrame from './BeyPanelFrame.jsx';
@@ -11,9 +11,17 @@ import EndSessionModal from './EndSessionModal.jsx';
 
 const PERSONA_LABEL = {
   investor: 'Investor',
+  cto: 'CTO',
   cfo: 'CFO',
   professor: 'Professor',
+  research_critic: 'Research Critic',
+  external_examiner: 'External Examiner',
+  interviewer: 'Interviewer',
+  hiring_manager: 'Hiring Manager',
 };
+
+const TIMER_R = 20;
+const TIMER_CIRC = 2 * Math.PI * TIMER_R;
 
 function formatDifficulty(raw) {
   if (!raw) return 'Standard';
@@ -42,7 +50,9 @@ export default function SimulationArena({
   const showDocPreview = Boolean(documentFile);
   const sessionStartedAt = useRef(Date.now());
   const beyAgentRef = useRef(null);
+  const startFinishTimeoutRef = useRef(null);
   const [started, setStarted] = useState(false);
+  const [startTransition, setStartTransition] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
@@ -98,11 +108,28 @@ export default function SimulationArena({
   };
 
   const handleStartDefense = () => {
-    sessionStartedAt.current = Date.now();
-    thirtySecondWarningSentRef.current = false;
-    setRemainingSeconds(uiTotalSeconds);
-    setStarted(true);
+    if (started || startTransition) return;
+    setStartTransition(true);
+    if (startFinishTimeoutRef.current) {
+      window.clearTimeout(startFinishTimeoutRef.current);
+    }
+    startFinishTimeoutRef.current = window.setTimeout(() => {
+      sessionStartedAt.current = Date.now();
+      thirtySecondWarningSentRef.current = false;
+      setRemainingSeconds(uiTotalSeconds);
+      setStarted(true);
+      setStartTransition(false);
+      startFinishTimeoutRef.current = null;
+    }, 550);
   };
+
+  useEffect(() => {
+    return () => {
+      if (startFinishTimeoutRef.current) {
+        window.clearTimeout(startFinishTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!started) return undefined;
@@ -171,50 +198,93 @@ export default function SimulationArena({
     </div>
   );
 
-  const showThirtySecondBanner =
+  const timerRingProgress =
+    started && remainingSeconds > 0
+      ? remainingSeconds / uiTotalSeconds
+      : started
+        ? 0
+        : 1;
+  const dashOffset = TIMER_CIRC * (1 - timerRingProgress);
+  const timerUrgent =
     started && remainingSeconds > 0 && remainingSeconds <= 30;
+  const timerExpired = started && remainingSeconds <= 0;
 
   const liveAndTimer = started && (
-    <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
-      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
-        <span
-          className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-          aria-hidden
-        />
-        Live Recording
-      </div>
-      <div
-        className={[
-          'flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm',
-          remainingSeconds <= 0
-            ? 'border-amber-500/40 bg-amber-950/70 text-amber-100'
-            : 'border-white/10 bg-black/55 text-zinc-100',
-        ].join(' ')}
-        role="timer"
-        aria-live="polite"
-        aria-label={
-          remainingSeconds <= 0
-            ? 'Interview goal time reached'
-            : `Time remaining: ${formatMmSs(remainingSeconds)}`
-        }
-      >
-        <Timer className="h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
-        {remainingSeconds <= 0 ? (
-          <span>Time reached — wrap up when ready</span>
-        ) : (
-          <span className="tabular-nums">{formatMmSs(remainingSeconds)}</span>
-        )}
-      </div>
-    </div>
-  );
-
-  const thirtySecondBanner = showThirtySecondBanner && (
     <div
-      className="pointer-events-none absolute left-1/2 top-4 z-20 max-w-md -translate-x-1/2 rounded-xl border border-amber-500/50 bg-amber-950/90 px-4 py-2 text-center text-xs font-semibold text-amber-50 shadow-lg backdrop-blur-sm"
-      role="status"
+      className={[
+        'absolute left-3 top-2 z-10 flex items-center gap-3 rounded-2xl border px-3 py-2.5 backdrop-blur-sm sm:left-4 sm:top-3',
+        timerUrgent
+          ? 'border-red-500/50 bg-red-950/50'
+          : timerExpired
+            ? 'border-amber-500/40 bg-amber-950/70'
+            : 'border-white/10 bg-black/55',
+      ].join(' ')}
+      role="timer"
+      aria-live="polite"
+      aria-label={
+        remainingSeconds <= 0
+          ? 'Interview goal time reached'
+          : `Time remaining: ${formatMmSs(remainingSeconds)}`
+      }
     >
-      Interview ends in {remainingSeconds}s — finish your point; end the session
-      when you&apos;re ready.
+      <div className="relative h-11 w-11 shrink-0">
+        <svg
+          className="h-11 w-11 -rotate-90"
+          viewBox="0 0 44 44"
+          aria-hidden
+        >
+          <circle
+            cx="22"
+            cy="22"
+            r={TIMER_R}
+            fill="none"
+            className="stroke-white/10"
+            strokeWidth="3"
+          />
+          <circle
+            cx="22"
+            cy="22"
+            r={TIMER_R}
+            fill="none"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={TIMER_CIRC}
+            strokeDashoffset={dashOffset}
+            className={[
+              'transition-[stroke-dashoffset] duration-1000 ease-linear',
+              timerExpired
+                ? 'stroke-amber-400/80'
+                : timerUrgent
+                  ? 'stroke-red-500'
+                  : 'stroke-cyan-400',
+            ].join(' ')}
+          />
+        </svg>
+      </div>
+      <div className="flex min-w-0 flex-col">
+        {remainingSeconds <= 0 ? (
+          <span className="text-xs font-medium text-amber-100">
+            Time reached — wrap up when ready
+          </span>
+        ) : (
+          <span
+            className={[
+              'font-mono text-lg font-semibold tabular-nums leading-none',
+              timerUrgent ? 'text-red-200' : 'text-zinc-100',
+            ].join(' ')}
+          >
+            {formatMmSs(remainingSeconds)}
+          </span>
+        )}
+        <span
+          className={[
+            'mt-1 text-[10px] font-medium uppercase tracking-wider',
+            timerUrgent ? 'text-red-400/90' : 'text-zinc-500',
+          ].join(' ')}
+        >
+          {remainingSeconds <= 0 ? 'Goal time' : 'Remaining'}
+        </span>
+      </div>
     </div>
   );
 
@@ -330,22 +400,23 @@ export default function SimulationArena({
             </div>
           )}
 
-          {thirtySecondBanner}
           {liveAndTimer}
           {arenaControls}
         </div>
         {panelColumn}
 
         {!started && (
-          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/80 px-6 backdrop-blur-sm">
-            <p className="max-w-md text-center text-sm text-zinc-400">
-              When you&apos;re ready, start the defense. Your live panelist will
-              connect automatically — no extra clicks inside the embed.
-            </p>
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 px-6 backdrop-blur-sm">
             <button
               type="button"
               onClick={handleStartDefense}
-              className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/20 px-8 py-3 text-base font-semibold text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.25)] transition-colors hover:bg-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-black"
+              disabled={startTransition}
+              className={[
+                'z-50 flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/20 px-8 py-3 text-base font-semibold text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.25)] transition-all duration-500 ease-out hover:bg-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-90',
+                startTransition
+                  ? 'translate-y-[min(38dvh,22rem)] scale-[0.92] opacity-70'
+                  : 'translate-y-0 scale-100 opacity-100',
+              ].join(' ')}
             >
               <Play className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
               Start Defense

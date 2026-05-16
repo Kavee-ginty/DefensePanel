@@ -187,7 +187,6 @@ export default function PdfPresentationView({
       ) : file && kind ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
           <FileText className="h-12 w-12 text-zinc-600" aria-hidden />
-          <p className="text-sm font-medium text-zinc-300">{file.name}</p>
           <p className="max-w-sm text-xs text-zinc-500">
             This file type is not supported in the arena preview.
           </p>
@@ -223,14 +222,6 @@ export default function PdfPresentationView({
           </p>
         </div>
       )}
-
-      {file?.name &&
-        !loadError &&
-        (pdfSrc || kind === 'docx' || kind === 'pptx') && (
-          <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-xs font-medium text-zinc-200 backdrop-blur-sm">
-            {file.name}
-          </div>
-        )}
     </div>
   );
 }

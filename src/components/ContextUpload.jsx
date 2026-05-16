@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -25,11 +25,23 @@ const DIFFICULTY_OPTIONS = [
   { id: 'standard', label: 'Standard' },
   { id: 'brutal', label: 'Brutal' },
 ];
-const PERSONAS = [
-  { id: 'investor', label: 'Investor' },
-  { id: 'cfo', label: 'CFO' },
-  { id: 'professor', label: 'Professor' },
-];
+/** Persona options per simulation mode (ids must match api/_lib/briefingPrompt.js). */
+const PERSONAS_BY_MODE = {
+  startup: [
+    { id: 'investor', label: 'Investor' },
+    { id: 'cto', label: 'CTO' },
+    { id: 'cfo', label: 'CFO' },
+  ],
+  academic: [
+    { id: 'professor', label: 'Professor' },
+    { id: 'research_critic', label: 'Research Critic' },
+    { id: 'external_examiner', label: 'External Examiner' },
+  ],
+  interview: [
+    { id: 'interviewer', label: 'Interviewer' },
+    { id: 'hiring_manager', label: 'Hiring Manager' },
+  ],
+};
 const PRACTICE_GOALS = [
   { id: 'filler_words', label: 'Reduce filler words' },
   { id: 'confidence', label: 'Improve confidence' },
@@ -75,6 +87,24 @@ export default function ContextUpload({
   const panelPersona = briefingSetup?.panelPersona ?? 'investor';
   const practiceGoals = briefingSetup?.practiceGoals ?? [];
   const visionMode = Boolean(briefingSetup?.visionMode);
+
+  const personasForMode = useMemo(
+    () => PERSONAS_BY_MODE[mode] ?? PERSONAS_BY_MODE.startup,
+    [mode],
+  );
+
+  useEffect(() => {
+    const allowed = personasForMode.map((p) => p.id);
+    const current = String(briefingSetup?.panelPersona ?? '');
+    if (allowed.includes(current)) return;
+    const first = personasForMode[0]?.id;
+    if (first && typeof onBriefingSetupChange === 'function') {
+      onBriefingSetupChange({
+        ...(briefingSetup ?? {}),
+        panelPersona: first,
+      });
+    }
+  }, [mode, personasForMode, briefingSetup, onBriefingSetupChange]);
 
   const toggleGoal = (goalId) => {
     const goals = [...(briefingSetup?.practiceGoals ?? [])];
@@ -284,7 +314,7 @@ export default function ContextUpload({
                   Panel personas
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {PERSONAS.map(({ id: pid, label }) => (
+                  {personasForMode.map(({ id: pid, label }) => (
                     <button
                       key={pid}
                       type="button"
