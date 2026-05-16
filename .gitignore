@@ -11,6 +11,10 @@ dist
 dist-ssr
 *.local
 
+# Local dev artifacts
+.vercel/
+.vite/
+
 # Editor
 .vscode/*
 !.vscode/extensions.json
