@@ -1,4 +1,5 @@
 import { LogOut, Shield } from 'lucide-react';
+import SimulationFlowIndicator from './SimulationFlowIndicator.jsx';
 
 const MARKETING_LINKS = [
   { id: 'home', label: 'Home' },
@@ -25,9 +26,10 @@ export default function TopNav({
   simView = null,
   onSimNavigate,
   showDevNav = false,
+  simulationMode = null,
 }) {
   return (
-    <header className="no-print fixed inset-x-0 top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
+    <header className="no-print fixed inset-x-0 top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
         <button
           type="button"
@@ -47,14 +49,23 @@ export default function TopNav({
               className={[
                 'rounded-lg px-3.5 py-2 text-sm font-medium transition-colors sm:text-base',
                 activePage === link.id && !inSimulation
-                  ? 'bg-zinc-800/90 text-white ring-1 ring-zinc-700'
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100',
+                  ? 'bg-zinc-800/90 text-white ring-1 ring-zinc-700 shadow-[0_0_20px_rgba(0,0,0,0.35)]'
+                  : 'text-zinc-400 hover:bg-zinc-900/80 hover:text-zinc-100',
               ].join(' ')}
             >
               {link.label}
             </button>
           ))}
         </nav>
+
+        {inSimulation && (
+          <div className="flex w-full basis-full justify-center py-2 sm:basis-auto sm:w-auto sm:max-w-[min(100%,26rem)] sm:py-0">
+            <SimulationFlowIndicator
+              currentView={simView}
+              modeId={simulationMode ?? 'startup'}
+            />
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
           {userLabel && (
