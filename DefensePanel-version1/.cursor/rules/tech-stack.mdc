@@ -1,0 +1,13 @@
+---
+description: Strict tech stack constraints (Vite, Vercel, Supabase)
+alwaysApply: true
+---
+
+# Core Tech Stack (STRICT CONSTRAINTS)
+
+- **Frontend:** React 18 (initialized via Vite). Do NOT use Next.js, App Router, or React Server Components.
+- **Styling:** Tailwind CSS. Use utility classes exclusively. Do NOT create custom `.css` files unless absolutely necessary for complex animations.
+- **Backend:** Vercel Serverless Functions located in the `/api` directory. Do NOT use Express.js or spin up a separate Node/Uvicorn server.
+- **Database:** Supabase PostgreSQL using the `@supabase/supabase-js` client.
+- **Icons:** `lucide-react` ONLY.
+- **Media/AI:** `@bey-dev/sdk` for avatars and WebRTC, standard HTML5 APIs for local camera/mic.

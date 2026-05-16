@@ -1,0 +1,12 @@
+---
+description: Vercel serverless error handling and external API proxying
+globs: api/**/*
+alwaysApply: false
+---
+
+# API Route Conventions
+
+- Wrap all handler logic in `try/catch`.
+- Never expose `OPENAI_API_KEY` or `BEYOND_PRESENCE_API_KEY` to the client; proxy AI calls here only.
+- On external API failure, return JSON: `{ "error": "message" }` with an appropriate HTTP status.
+- Run Supabase queries in `/api` endpoints, not in frontend components.

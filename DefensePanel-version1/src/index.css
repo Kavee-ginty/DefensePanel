@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: rgb(9 9 11);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: rgb(59 130 246 / 0.3);
+}
+
+@page {
+  size: A4 landscape;
+  margin: 8mm;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: rgb(15 23 42);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    padding-top: 0 !important;
+  }
+
+  /* Compact debrief PDF export — keeps demo-length reports closer to one page */
+  #debrief-print-root {
+    font-size: 9.5pt;
+    line-height: 1.35;
+    background: white !important;
+    color: rgb(15 23 42) !important;
+  }
+
+  #debrief-print-root section.rounded-xl,
+  #debrief-print-root .rounded-xl.border {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #debrief-print-root ul {
+    margin: 0;
+    padding-left: 1rem;
+  }
+
+  #debrief-print-root .debrief-chart-print svg {
+    max-height: 132px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+.docx-preview-host {
+  color: rgb(24 24 27);
+  min-height: 100%;
+}
+
+.docx-preview-host .docx-arena-wrapper,
+.docx-preview-host .docx-wrapper {
+  background: transparent;
+  padding: 0;
+}
+
+.docx-preview-host .docx-arena {
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.35);
+  background: white;
+}
+
+.pptx-preview-host {
+  display: flex;
+  min-height: min(70vh, 640px);
+  width: 100%;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.pptx-preview-host > * {
+  max-width: 100%;
+}
