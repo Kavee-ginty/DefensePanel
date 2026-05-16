@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { formidable } from 'formidable'
 import OpenAI from 'openai'
 import { PDFParse } from 'pdf-parse'
+import JSZip from 'jszip'
+import mammoth from 'mammoth'
 
 export const config = {
   api: {
@@ -11,6 +13,7 @@ export const config = {
 }
 
 const MAX_DOC_CHARS_FOR_LLM = 14_000
+const PPTX_SLIDE_TEXT_RE = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g
 
 function parseForm(req) {
   const form = formidable({
@@ -26,12 +29,104 @@ function parseForm(req) {
   })
 }
 
-function getUploadedPdf(files) {
-  const uploaded = Array.isArray(files.pdf) ? files.pdf[0] : files.pdf
+function getUploadedDocument(files) {
+  const field = files.document ?? files.pdf
+  const uploaded = Array.isArray(field) ? field[0] : field
   if (!uploaded) {
-    throw new Error('PDF file is required')
+    throw new Error('Document file is required')
   }
   return uploaded
+}
+
+function extensionOf(file) {
+  const name = file?.originalFilename ?? file?.newFilename ?? ''
+  const dot = name.lastIndexOf('.')
+  return dot >= 0 ? name.slice(dot + 1).toLowerCase() : ''
+}
+
+function getDocumentKind(file) {
+  const ext = extensionOf(file)
+  if (ext === 'pdf' || ext === 'docx' || ext === 'pptx') return ext
+
+  const type = (file?.mimetype ?? '').toLowerCase()
+  if (type === 'application/pdf') return 'pdf'
+  if (
+    type ===
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    return 'docx'
+  }
+  if (
+    type ===
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ) {
+    return 'pptx'
+  }
+
+  return null
+}
+
+function decodeXmlText(value) {
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+}
+
+function textFromSlideXml(xml) {
+  const parts = []
+  for (const match of xml.matchAll(PPTX_SLIDE_TEXT_RE)) {
+    if (match[1]) parts.push(decodeXmlText(match[1]))
+  }
+  return parts.join(' ').trim()
+}
+
+async function extractPdfText(buffer) {
+  const parser = new PDFParse({ data: buffer })
+  try {
+    const parsed = await parser.getText()
+    return parsed.text?.trim() ?? ''
+  } finally {
+    await parser.destroy()
+  }
+}
+
+async function extractDocxText(buffer) {
+  const { value } = await mammoth.extractRawText({ buffer })
+  return (value ?? '').trim()
+}
+
+async function extractPptxText(buffer) {
+  const zip = await JSZip.loadAsync(buffer)
+  const slidePaths = Object.keys(zip.files)
+    .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
+    .sort((a, b) => {
+      const num = (path) => Number(path.match(/slide(\d+)\.xml/i)?.[1] ?? 0)
+      return num(a) - num(b)
+    })
+
+  if (slidePaths.length === 0) {
+    throw new Error('No slides found in this presentation')
+  }
+
+  const slides = await Promise.all(
+    slidePaths.map(async (path) => {
+      const xml = await zip.file(path).async('text')
+      return textFromSlideXml(xml)
+    }),
+  )
+
+  return slides.filter(Boolean).join('\n\n').trim()
+}
+
+async function extractDocumentText(file, buffer) {
+  const kind = getDocumentKind(file)
+  if (kind === 'pdf') return extractPdfText(buffer)
+  if (kind === 'docx') return extractDocxText(buffer)
+  if (kind === 'pptx') return extractPptxText(buffer)
+  throw new Error('Unsupported file type. Please upload a PDF, DOCX, or PPTX file.')
 }
 
 /**
@@ -46,15 +141,12 @@ export default async function handler(req, res) {
 
   try {
     const { files } = await parseForm(req)
-    const pdf = getUploadedPdf(files)
-    const buffer = await readFile(pdf.filepath)
-    const parser = new PDFParse({ data: buffer })
-    const parsed = await parser.getText()
-    await parser.destroy()
-    const documentText = parsed.text?.trim()
+    const document = getUploadedDocument(files)
+    const buffer = await readFile(document.filepath)
+    const documentText = await extractDocumentText(document, buffer)
 
     if (!documentText) {
-      throw new Error('Could not extract text from PDF')
+      throw new Error('Could not extract text from document')
     }
 
     const truncated =

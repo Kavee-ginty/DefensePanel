@@ -70,10 +70,10 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50">
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 shadow-xl backdrop-blur-md">
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-8 shadow-xl backdrop-blur-md">
           <header className="mb-8 text-center">
             <h1 className="text-2xl font-bold tracking-tight">
-              The Defense Panel
+              Defense Panel
             </h1>
             <p className="mt-2 text-sm text-zinc-400">
               {tab === 'login'
@@ -82,7 +82,7 @@ export default function AuthPage() {
             </p>
           </header>
 
-          <div className="mb-6 flex rounded-lg border border-zinc-800 bg-zinc-950/80 p-1">
+          <div className="mb-6 flex rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-1">
             <button
               type="button"
               onClick={() => {
@@ -162,7 +162,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all hover:bg-blue-500 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-colors hover:bg-blue-500 disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -263,7 +263,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all hover:bg-blue-500 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-colors hover:bg-blue-500 disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

@@ -48,9 +48,9 @@ export default function DebriefDashboard({
   durationLabel = '04:12',
   criticalFeedback = '',
   scoreHistory = DEFAULT_SCORE_HISTORY,
-  returnLabel = 'Return to Lobby',
   isLoading = false,
   onReturn,
+  onGoHistory,
 }) {
   const chartGradientId = useId().replace(/:/g, '');
   const ended =
@@ -277,13 +277,20 @@ export default function DebriefDashboard({
           </div>
         </section>
 
-        <div className="flex justify-center pb-8">
+        <div className="flex flex-wrap justify-center gap-3 pb-8">
           <button
             type="button"
             onClick={() => onReturn?.()}
-            className="rounded-xl border border-slate-600 bg-transparent px-8 py-3 text-sm font-medium text-slate-100 transition-all duration-150 hover:border-slate-400 hover:bg-slate-900/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            className="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.35)] transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
           >
-            {returnLabel}
+            Return to Lobby
+          </button>
+          <button
+            type="button"
+            onClick={() => onGoHistory?.()}
+            className="rounded-xl border border-slate-700 bg-slate-900/40 px-8 py-3 text-sm font-medium text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-900/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          >
+            Session History
           </button>
         </div>
       </div>

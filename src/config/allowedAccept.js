@@ -1,4 +1,7 @@
-// v1: backend /api/process-document only handles PDF. DOCX/PPTX support
-// stays in src/lib/extractDocumentText.js for future re-enable once the
-// backend accepts pre-extracted text instead of a binary file.
-export const ALLOWED_ACCEPT = 'application/pdf,.pdf';
+// PDF, DOCX, and PPTX — briefing upload and /api/process-document extraction.
+export const ALLOWED_ACCEPT =
+  'application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx';
+
+export const PITCH_ACCEPT = ALLOWED_ACCEPT;
+
+export const PDF_ONLY_ACCEPT = 'application/pdf,.pdf';
