@@ -54,7 +54,7 @@ export async function processDocument(file) {
  *   conversation_flow_structure?: string
  *   starting_script?: string
  * }} payload
- * @returns {Promise<{ success: true, agent_id: string, agent_embed_url: string, agent_name: string }>}
+ * @returns {Promise<{ success: true, agent_id: string, agent_embed_url: string, agent_name: string, agent_id_2?: string, agent_embed_url_2?: string, agent_name_2?: string }>}
  */
 export async function startSession(payload) {
   try {
@@ -141,6 +141,7 @@ export async function startCall(agentId, tags) {
  * @param {{
  *   transcript_text?: string,
  *   agent_id?: string | null,
+ *   agent_id_2?: string | null,
  *   scenario_type?: string,
  *   mode_id?: string,
  *   duration_seconds: number,

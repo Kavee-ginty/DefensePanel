@@ -233,9 +233,14 @@ export default function App() {
 
       setDebriefSaving(true);
       try {
-        const { session: saved, agent_deleted } = await endSessionApi(
+        const {
+          session: saved,
+          agent_deleted,
+          agent_deleted_2,
+        } = await endSessionApi(
           {
             agent_id: agentSession?.agentId ?? null,
+            agent_id_2: agentSession?.agentId2 ?? null,
             scenario_type: scenarioType,
             mode_id: modeId,
             duration_seconds: durationSeconds,
@@ -255,7 +260,7 @@ export default function App() {
         setSessionsCache(nextCache);
         setScoreHistory(chartFromSessions(nextCache));
         setSessionsCacheFetchedAt(Date.now());
-        if (agent_deleted) {
+        if (agent_deleted || agent_deleted_2) {
           setAgentSession(null);
         }
       } catch (err) {
@@ -336,6 +341,8 @@ export default function App() {
               documentFile={file}
               agentId={agentSession?.agentId ?? null}
               agentEmbedUrl={agentSession?.agentEmbedUrl ?? null}
+              agentId2={agentSession?.agentId2 ?? null}
+              agentEmbedUrl2={agentSession?.agentEmbedUrl2 ?? null}
               briefingSetup={briefingSetup}
               onEndSession={handleEndSession}
             />

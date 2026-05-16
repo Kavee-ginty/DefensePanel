@@ -71,6 +71,7 @@ Optional:
 | Variable | Default | Purpose |
 |---|---|---|
 | `BEY_CHAT_EMBED_ORIGIN` | `https://bey.chat` | Override the iframe-fallback embed origin |
+| `BEY_AVATAR_ID2` | unset | Second Beyond avatar: silent panelist agent + LiveKit slot 2 in the arena |
 | `VITE_USE_API_SESSIONS` | unset | Force the frontend to use `/api/sessions` instead of direct Supabase reads. Production already uses `/api/*` automatically. |
 
 Never expose `OPENAI_API_KEY`, `BEYOND_PRESENCE_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` to the frontend — only the `VITE_`-prefixed pair is bundled into the client.

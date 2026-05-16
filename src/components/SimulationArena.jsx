@@ -52,6 +52,8 @@ export default function SimulationArena({
   documentFile = null,
   agentId = null,
   agentEmbedUrl = null,
+  agentId2 = null,
+  agentEmbedUrl2 = null,
   briefingSetup = null,
   onEndSession,
 }) {
@@ -79,7 +81,9 @@ export default function SimulationArena({
   const thirtySecondWarningSentRef = useRef(false);
   const fiveSecondWarningSentRef = useRef(false);
 
-  const usesLiveKitPanel = Boolean(agentId);
+  const usesLiveKitPanel = Boolean(
+    agentId?.trim() || agentId2?.trim(),
+  );
 
   const uiTotalSeconds = useMemo(() => {
     const mins = briefingSetup?.sessionMinutes ?? 5;
@@ -92,23 +96,47 @@ export default function SimulationArena({
   const panels = useMemo(
     () =>
       config.panelists.map((p, index) => {
-        const useHeadlessLiveKit = index === 0 && Boolean(agentId);
+        const isFirst = index === 0;
+        const isSecond = index === 1;
+        const slotAgentId = isFirst
+          ? agentId
+          : isSecond
+            ? agentId2
+            : null;
+        const slotEmbedUrl = isFirst
+          ? agentEmbedUrl
+          : isSecond
+            ? agentEmbedUrl2
+            : null;
+
+        const useHeadlessLiveKit = Boolean(slotAgentId?.trim());
         const useAgentIframe =
-          index === 0 && Boolean(agentEmbedUrl) && !useHeadlessLiveKit;
+          Boolean(slotEmbedUrl?.trim()) &&
+          !useHeadlessLiveKit &&
+          (isFirst || isSecond);
 
         let embedUrl = p.beyChatUrl ?? getBeyEmbedUrl(index);
-        if (useAgentIframe) embedUrl = agentEmbedUrl;
+        if (useAgentIframe) embedUrl = slotEmbedUrl;
 
         const isLiveSlot = useHeadlessLiveKit || useAgentIframe;
+        const silentSecond = isSecond && Boolean(agentId2?.trim());
+        const liveLabelSuffix = silentSecond ? 'Silent' : 'Live';
 
         return {
-          label: isLiveSlot ? `${p.label} · Live` : p.label,
+          label: isLiveSlot ? `${p.label} · ${liveLabelSuffix}` : p.label,
           embedUrl,
           isBargeIn: false,
           useHeadlessLiveKit,
+          slotAgentId: slotAgentId?.trim() || null,
         };
       }),
-    [config.panelists, agentId, agentEmbedUrl],
+    [
+      config.panelists,
+      agentId,
+      agentEmbedUrl,
+      agentId2,
+      agentEmbedUrl2,
+    ],
   );
 
   const startInterviewTimer = useCallback(() => {
@@ -384,14 +412,17 @@ export default function SimulationArena({
         {panels.map((panel, index) =>
           panel.useHeadlessLiveKit ? (
             <BeyAgentCall
-              ref={beyAgentRef}
-              key="bey-livekit-slot"
-              agentId={agentId}
+              ref={index === 0 ? beyAgentRef : undefined}
+              key={`bey-livekit-${panel.slotAgentId ?? index}`}
+              agentId={panel.slotAgentId}
               started={started}
               muted={muted}
+              publishMic={index === 0}
               label={panel.label}
               fillHeight
-              onAvatarFirstSpeech={handleAvatarFirstSpeech}
+              onAvatarFirstSpeech={
+                index === 0 ? handleAvatarFirstSpeech : undefined
+              }
             />
           ) : (
             <BeyPanelFrame
