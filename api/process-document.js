@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
 Read this document completely and output ONLY a valid JSON object with exactly these 6 keys:
 
-"system_prompt": A string UNDER 900 characters containing ALL of these:
+"system_prompt": A string UNDER 2500 characters containing ALL of these:
 - The exact project name and one sentence on what it does
 - Exactly 3 specific technical claims with real numbers or metrics copied from the document
 - Exactly 2 budget or timeline figures copied verbatim from the document

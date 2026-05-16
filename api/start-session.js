@@ -175,13 +175,22 @@ export default async function handler(req, res) {
       )
     }
 
+    const mergedSystemPrompt = [
+      `[ROLE & OBJECTIVE]\n${String(system_prompt).trim()}`,
+      conversation_flow
+        ? `[CONVERSATIONAL FLOW]\n${conversation_flow}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
     const agentData = await createAgent({
       avatar_id,
       agentName,
-      system_prompt: String(system_prompt).trim(),
+      system_prompt: mergedSystemPrompt,
       conversation_flow,
       starting_script,
-      greeting,
+      greeting: starting_script || greeting,
       max_session_length,
     })
 
