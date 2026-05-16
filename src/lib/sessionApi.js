@@ -45,7 +45,15 @@ export async function processDocument(file) {
 }
 
 /**
- * @param {{ system_prompt: string, greeting?: string, name?: string }} payload
+ * @param {{
+ *   system_prompt: string
+ *   greeting?: string
+ *   name?: string
+ *   briefingSetup?: Record<string, unknown> | null
+ *   role_objectives?: string
+ *   conversation_flow_structure?: string
+ *   starting_script?: string
+ * }} payload
  * @returns {Promise<{ success: true, agent_id: string, agent_embed_url: string, agent_name: string }>}
  */
 export async function startSession(payload) {
@@ -57,6 +65,25 @@ export async function startSession(payload) {
     formData.append('system_prompt', payload.system_prompt);
     formData.append('greeting', payload.greeting || '');
     formData.append('name', payload.name || `defense-panel-${Date.now()}`);
+
+    if (payload.briefingSetup && typeof payload.briefingSetup === 'object') {
+      formData.append(
+        'briefing_setup',
+        JSON.stringify(payload.briefingSetup),
+      );
+    }
+    if (payload.role_objectives?.trim()) {
+      formData.append('role_objectives', payload.role_objectives);
+    }
+    if (payload.conversation_flow_structure?.trim()) {
+      formData.append(
+        'conversation_flow_structure',
+        payload.conversation_flow_structure,
+      );
+    }
+    if (payload.starting_script?.trim()) {
+      formData.append('starting_script', payload.starting_script);
+    }
 
     const res = await fetch('/api/start-session', {
       method: 'POST',

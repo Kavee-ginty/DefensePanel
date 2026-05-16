@@ -143,9 +143,21 @@ export default function ContextUpload({
       }
 
       setDeployStage('Deploying defense panel agent…');
+      const setupSnapshot = {
+        difficulty: briefingSetup?.difficulty ?? 'standard',
+        sessionMinutes: briefingSetup?.sessionMinutes ?? 5,
+        panelPersona: briefingSetup?.panelPersona ?? 'investor',
+        practiceGoals: [...(briefingSetup?.practiceGoals ?? [])],
+        visionMode: Boolean(briefingSetup?.visionMode),
+      };
+
       const agentResult = await startSession({
         system_prompt: prompts.system_prompt,
         greeting: prompts.greeting,
+        briefingSetup: setupSnapshot,
+        role_objectives: prompts.role_objectives,
+        conversation_flow_structure: prompts.conversation_flow_structure,
+        starting_script: prompts.starting_script,
       });
       if (!agentResult?.agent_embed_url) {
         throw new Error('Agent creation returned no embed URL');
@@ -157,6 +169,7 @@ export default function ContextUpload({
         agentName: agentResult.agent_name,
         prompts,
         documentSummary: docResult.document_summary,
+        briefingSetup: setupSnapshot,
       });
 
       toast.success('Panel deployed — entering arena');
@@ -169,7 +182,7 @@ export default function ContextUpload({
       setIsDeploying(false);
       setDeployStage(null);
     }
-  }, [file, onAgentReady, onInitialize]);
+  }, [file, briefingSetup, onAgentReady, onInitialize]);
 
   const buttonLabel = isDeploying
     ? deployStage ?? 'Processing…'
@@ -207,8 +220,8 @@ export default function ContextUpload({
               Pre-session setup
             </p>
             <p className="mt-1 max-w-xl text-xs text-zinc-500">
-              Optional preferences for rehearsal context. These controls do not alter
-              the agent embed call — purely for UX and pacing.
+              Optional preferences for how the generated panel should question you.
+              They are merged into the agent&apos;s system prompt when you deploy.
             </p>
 
             <div className="mt-6 space-y-8">
