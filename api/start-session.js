@@ -1,5 +1,4 @@
 /* global process */
-import { readFile } from 'node:fs/promises'
 import { formidable } from 'formidable'
 
 const BEYOND_AGENTS_URL = 'https://api.bey.dev/v1/agents'
@@ -78,64 +77,6 @@ async function createAgent({ avatar_id, name, system_prompt, greeting }) {
 }
 
 /**
- * Best-effort PDF upload as agent "knowledge" if the platform exposes an endpoint.
- * @param {string} agentId
- * @param {{ filepath: string, originalFilename?: string | null, mimetype?: string | null }} file
- */
-async function tryUploadAgentKnowledge(agentId, file) {
-  if (!file?.filepath || !agentId) {
-    return { ok: false, skipped: true }
-  }
-
-  const customUrl = process.env.BEY_KNOWLEDGE_UPLOAD_URL
-  const candidateUrls = customUrl
-    ? [
-        customUrl
-          .replaceAll('{agent_id}', agentId)
-          .replaceAll('{agentId}', agentId),
-      ]
-    : [
-        `https://api.bey.dev/v1/agents/${agentId}/knowledge_files`,
-        `https://api.bey.dev/v1/agents/${agentId}/knowledge`,
-      ]
-
-  let lastStatus = 0
-  for (const url of candidateUrls) {
-    try {
-      const buffer = await readFile(file.filepath)
-      const formData = new FormData()
-      const blob = new Blob([buffer], {
-        type: file.mimetype || 'application/pdf',
-      })
-      const filename = file.originalFilename || 'document.pdf'
-      formData.append('file', blob, filename)
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'x-api-key': process.env.BEYOND_PRESENCE_API_KEY,
-        },
-        body: formData,
-      })
-      lastStatus = res.status
-      if (res.ok) {
-        return { ok: true, url }
-      }
-    } catch (err) {
-      console.warn('[start-session] knowledge upload attempt failed', url, err)
-    }
-  }
-
-  return {
-    ok: false,
-    lastStatus,
-    message: 'Knowledge file upload not available or failed (using prompt context only)',
-  }
-}
-
-/**
- * Chat embed URLs: https://bey.chat/{agent_id}
- * Override with BEY_CHAT_EMBED_ORIGIN (no trailing slash), e.g. https://bey.chat
  * @param {import('@vercel/node').VercelRequest} req
  * @param {import('@vercel/node').VercelResponse} res
  */
@@ -149,17 +90,13 @@ export default async function handler(req, res) {
     let system_prompt = ''
     let greeting = ''
     let name = `agent-${Date.now()}`
-    /** @type {import('formidable').File | undefined} */
-    let pdfFile
 
     if (contentType.includes('multipart/form-data')) {
-      const { fields, files } = await parseForm(req)
+      const { fields } = await parseForm(req)
       system_prompt = getField(fields, 'system_prompt')
       greeting = getField(fields, 'greeting')
       const nameField = getField(fields, 'name')
       if (nameField) name = nameField
-      pdfFile =
-        (Array.isArray(files.pdf) ? files.pdf[0] : files.pdf) || undefined
     } else {
       throw new Error('Expected multipart form data for /api/start-session')
     }
@@ -175,38 +112,31 @@ export default async function handler(req, res) {
       )
     }
 
-    const agent = await createAgent({
+    const agentData = await createAgent({
       avatar_id,
       name,
       system_prompt: String(system_prompt).trim(),
       greeting,
     })
 
-    logAgentKeys('agent', agent)
+    logAgentKeys('agent', agentData)
 
-    const agent_id = agent?.id
+    const agent_id = agentData?.id
     if (!agent_id) {
       throw new Error('Beyond Presence response missing agent id')
     }
 
-    const knowledgeResult = await tryUploadAgentKnowledge(agent_id, pdfFile)
-    let knowledge_upload_warning = null
-    if (pdfFile && !knowledgeResult.ok && !knowledgeResult.skipped) {
-      knowledge_upload_warning = knowledgeResult.message
-      console.warn('[start-session]', knowledge_upload_warning)
-    }
-
-    const chatOrigin = (process.env.BEY_CHAT_EMBED_ORIGIN || 'https://bey.chat')
-      .replace(/\/$/, '')
-    const agent_embed_url = `${chatOrigin}/${agent_id}`
+    const agent_embed_url = `https://bey.chat/embed/${agentData.id}`
+    const agent_name =
+      agentData?.name != null && agentData?.name !== ''
+        ? agentData.name
+        : name
 
     return res.status(200).json({
       success: true,
       agent_id,
       agent_embed_url,
-      ...(knowledge_upload_warning
-        ? { knowledge_upload_warning }
-        : {}),
+      agent_name,
     })
   } catch (err) {
     console.error('start-session failed', err)

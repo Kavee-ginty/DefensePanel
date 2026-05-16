@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { FileText } from 'lucide-react'
-import AvatarView from '../components/AvatarView.jsx'
 import ArenaControls from '../components/ArenaControls.jsx'
 import AgentPromptDrawer from '../components/AgentPromptDrawer.jsx'
 import Button from '../components/Button.jsx'
@@ -20,19 +19,30 @@ export default function SimulationArena() {
     agentConversationFlow,
     agentStartingScript,
     scenario,
-    transcript,
     setGrades,
+    setSessionDuration,
   } = useApp()
+
+  const sessionStartTime = useRef(null)
 
   const videoRef = useRef(null)
   const streamRef = useRef(null)
-  const startedAtRef = useRef(null)
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [promptOpen, setPromptOpen] = useState(false)
+  const [transcript, setTranscript] = useState('')
 
   useEffect(() => {
-    startedAtRef.current = Date.now()
+    sessionStartTime.current = Date.now()
+  }, [])
+
+  useEffect(() => {
+    if (!agentEmbedUrl) {
+      navigate('/')
+    }
+  }, [agentEmbedUrl, navigate])
+
+  useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
@@ -88,23 +98,34 @@ export default function SimulationArena() {
   }, [isVideoOff])
 
   const handleEndSession = useCallback(async () => {
-    const durationSeconds = Math.max(
-      1,
-      Math.round((Date.now() - (startedAtRef.current ?? Date.now())) / 1000),
+    const duration_seconds = Math.floor(
+      (Date.now() - (sessionStartTime.current ?? Date.now())) / 1000,
     )
 
     const result = await endSession({
-      transcript,
+      transcript_text: transcript || 'No transcript provided',
       agent_id: agentId,
       scenario_type: scenario,
-      duration_seconds: durationSeconds,
+      duration_seconds,
     })
     if (result?.grades) {
       setGrades(result.grades)
     }
+    setSessionDuration(duration_seconds)
     streamRef.current?.getTracks().forEach((t) => t.stop())
     navigate('/debrief')
-  }, [agentId, navigate, scenario, setGrades, transcript])
+  }, [
+    agentId,
+    navigate,
+    scenario,
+    setGrades,
+    setSessionDuration,
+    transcript,
+  ])
+
+  if (!agentEmbedUrl) {
+    return null
+  }
 
   if (!agentId) {
     return <Navigate to="/" replace />
@@ -133,7 +154,7 @@ export default function SimulationArena() {
         startingScript={agentStartingScript}
       />
 
-      <div className="flex flex-1 min-h-0 w-full">
+      <div className="flex flex-1 min-h-0 w-full pb-40">
         {/* Left: user webcam */}
         <div className="w-1/2 h-full flex items-center justify-center bg-zinc-950 p-4 border-r border-zinc-900 min-h-0">
           <video
@@ -146,13 +167,26 @@ export default function SimulationArena() {
         </div>
         {/* Right: single agent */}
         <div className="w-1/2 h-full flex flex-col gap-4 p-4 bg-black min-h-0">
-          <div className="flex-1 min-h-0 flex flex-col">
-            <AvatarView
-              embedUrl={agentEmbedUrl}
-              label="AI Agent"
+          <div className="relative flex-1 min-h-0 rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+            <iframe
+              src={agentEmbedUrl}
+              allow="camera *; microphone *; display-capture *; autoplay *; clipboard-write *"
+              allowFullScreen={true}
+              className="w-full h-full border-0"
+              title="Defense Panel AI Agent"
             />
           </div>
         </div>
+      </div>
+
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4">
+        <textarea
+          value={transcript}
+          onChange={(e) => setTranscript(e.target.value)}
+          rows={3}
+          placeholder="After your session ends, briefly summarise what you presented... (used to generate your debrief score)"
+          className="bg-zinc-900/80 border border-zinc-700 rounded-lg p-3 text-zinc-300 text-sm w-full max-w-2xl mx-auto resize-none"
+        />
       </div>
 
       <ArenaControls

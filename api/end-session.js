@@ -4,131 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 
 const BEY_API = 'https://api.bey.dev/v1'
 
-function normalizeClientTranscript(transcript) {
-  if (Array.isArray(transcript)) {
-    return transcript
-      .map((entry) =>
-        typeof entry === 'string' ? entry : JSON.stringify(entry, null, 2),
-      )
-      .join('\n')
-  }
-  return String(transcript || '')
-}
-
-/** @param {string | null | undefined} agentId */
-async function findLatestCallForAgent(agentId) {
-  const apiKey = process.env.BEYOND_PRESENCE_API_KEY
-  if (!apiKey?.trim() || !agentId?.trim()) {
-    return null
-  }
-
-  const maxPages = 10
-  let cursor = null
-
-  for (let page = 0; page < maxPages; page += 1) {
-    const url = new URL(`${BEY_API}/calls`)
-    url.searchParams.set('limit', '50')
-    if (cursor) url.searchParams.set('cursor', cursor)
-
-    const res = await fetch(url.toString(), {
-      headers: { 'x-api-key': apiKey },
-    })
-
-    if (!res.ok) {
-      const t = await res.text().catch(() => '')
-      console.warn('[end-session] list calls failed', res.status, t)
-      break
-    }
-
-    const payload = await res.json().catch(() => null)
-    const data = Array.isArray(payload?.data) ? payload.data : []
-
-    const forAgent = data.filter((c) => c?.agent_id === agentId)
-    if (forAgent.length > 0) {
-      forAgent.sort(
-        (a, b) =>
-          new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
-      )
-      return forAgent[0]
-    }
-
-    if (!payload?.has_more || !payload?.next_cursor) {
-      break
-    }
-    cursor = payload.next_cursor
-  }
-
-  return null
-}
-
-/** @param {string} callId */
-async function fetchCallMessages(callId) {
-  const apiKey = process.env.BEYOND_PRESENCE_API_KEY
-  if (!apiKey?.trim() || !callId) {
-    return []
-  }
-
-  const res = await fetch(`${BEY_API}/calls/${callId}/messages`, {
-    headers: { 'x-api-key': apiKey },
-  })
-
-  if (!res.ok) {
-    const t = await res.text().catch(() => '')
-    console.warn('[end-session] list messages failed', res.status, t)
-    return []
-  }
-
-  const data = await res.json().catch(() => [])
-  return Array.isArray(data) ? data : []
-}
-
-/**
- * @param {unknown} transcript from client
- * @returns {{ transcript_text: string, transcript_json: unknown | null, bey_call_id: string | null }}
- */
-async function resolveTranscript(agentId, transcript) {
-  const clientText = normalizeClientTranscript(transcript)
-  let transcriptJson = null
-  if (Array.isArray(transcript)) {
-    transcriptJson = transcript
-  }
-
-  try {
-    const call = await findLatestCallForAgent(agentId)
-    if (!call?.id) {
-      return {
-        transcript_text: clientText,
-        transcript_json: transcriptJson,
-        bey_call_id: null,
-      }
-    }
-
-    const messages = await fetchCallMessages(call.id)
-    if (!messages.length) {
-      return {
-        transcript_text: clientText,
-        transcript_json: transcriptJson,
-        bey_call_id: call.id,
-      }
-    }
-
-    const lines = messages.map((m) => `${m.sender}: ${m.message}`).join('\n')
-
-    return {
-      transcript_text: lines.trim() || clientText,
-      transcript_json: messages,
-      bey_call_id: call.id,
-    }
-  } catch (err) {
-    console.warn('[end-session] Beyond transcript fetch failed', err)
-    return {
-      transcript_text: clientText,
-      transcript_json: transcriptJson,
-      bey_call_id: null,
-    }
-  }
-}
-
 /**
  * @param {string | null | undefined} agentId
  * @returns {Promise<{ deleted: boolean, status?: number }>}
@@ -170,39 +45,53 @@ export default async function handler(req, res) {
 
   try {
     const {
-      transcript,
+      transcript_text,
       agent_id,
       scenario_type,
       duration_seconds,
     } = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
 
-    const {
-      transcript_text: mergedTranscriptText,
-      transcript_json,
-      bey_call_id,
-    } = await resolveTranscript(agent_id, transcript)
+    const transcriptTextRaw =
+      typeof transcript_text === 'string' ? transcript_text : ''
+    const mergedTranscriptText =
+      transcriptTextRaw.trim() !== ''
+        ? transcriptTextRaw
+        : 'No transcript provided for this session.'
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     })
 
-    const gradePayload =
-      mergedTranscriptText.trim() ||
-      '(No transcript text captured — infer limited feedback.)'
-
-    const prompt = `Grade this presentation transcript. Output ONLY a valid JSON object with these exact keys:
-filler_word_count (number — count um uh like basically you know),
-pacing_score (number 1-10),
-clarity_score (number 1-10),
-top_3_improvements (array of 3 specific strings referencing what was actually said),
-overall_score (number 0-100),
-critical_feedback (string — 2-3 sentences of direct specific feedback referencing the transcript)
-Transcript: ${gradePayload}`
-
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
+      temperature: 0.2,
       response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a professional presentation coach grading a defense panel session. Output valid JSON only. No markdown, no backticks.',
+        },
+        {
+          role: 'user',
+          content: `Grade this presentation session. Output ONLY a valid JSON object with exactly these keys:
+
+"filler_word_count": a number. Count every instance of: um, uh, like, basically, you know, sort of, kind of, right, so yeah.
+
+"pacing_score": a number from 1 to 10. 1 is extremely rushed, 10 is perfectly paced.
+
+"clarity_score": a number from 1 to 10. 1 is completely unclear, 10 is crystal clear.
+
+"overall_score": a number from 0 to 100.
+
+"top_3_improvements": an array of exactly 3 strings. Each string must reference something specific that was actually said in the transcript. No generic advice.
+
+"critical_feedback": a string of exactly 2 to 3 sentences. Be direct and specific. Reference exact things said in the transcript. No generic encouragement.
+
+Transcript to grade:
+${mergedTranscriptText}`,
+        },
+      ],
     })
 
     const raw = completion.choices?.[0]?.message?.content
@@ -225,8 +114,8 @@ Transcript: ${gradePayload}`
       overall_score: grades.overall_score,
       is_active: true,
       transcript_text: mergedTranscriptText || null,
-      transcript_json: transcript_json ?? null,
-      bey_call_id: bey_call_id ?? null,
+      transcript_json: null,
+      bey_call_id: null,
     })
 
     if (error) {
@@ -242,7 +131,6 @@ Transcript: ${gradePayload}`
       grades,
       agent_deleted: deleted,
       ...(typeof status === 'number' ? { agent_delete_status: status } : {}),
-      ...(bey_call_id ? { bey_call_id } : {}),
     })
   } catch (err) {
     console.error('end-session failed', err)

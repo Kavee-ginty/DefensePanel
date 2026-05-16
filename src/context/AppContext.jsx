@@ -12,13 +12,16 @@ const initialState = {
   agentConversationFlow: null,
   agentStartingScript: null,
   agentId: null,
-  /** Bey chat embed URL — https://bey.chat/{agent_id}. */
+  agentName: null,
+  /** Bey chat embed URL — https://bey.chat/embed/{agent_id}. */
   agentEmbedUrl: null,
   sessionId: null,
   transcript: [],
   attackPoints: null,
+  documentSummary: null,
   /** Set after `endSession` for `/debrief` */
   grades: null,
+  sessionDuration: 0,
 }
 
 export function AppProvider({ children }) {
@@ -38,11 +41,18 @@ export function AppProvider({ children }) {
     initialState.agentStartingScript,
   )
   const [agentId, setAgentId] = useState(initialState.agentId)
+  const [agentName, setAgentName] = useState(initialState.agentName)
   const [agentEmbedUrl, setAgentEmbedUrl] = useState(initialState.agentEmbedUrl)
   const [sessionId, setSessionId] = useState(initialState.sessionId)
   const [transcript, setTranscript] = useState(initialState.transcript)
   const [attackPoints, setAttackPoints] = useState(initialState.attackPoints)
+  const [documentSummary, setDocumentSummary] = useState(
+    initialState.documentSummary,
+  )
   const [grades, setGrades] = useState(initialState.grades)
+  const [sessionDuration, setSessionDuration] = useState(
+    initialState.sessionDuration,
+  )
 
   const value = useMemo(
     () => ({
@@ -60,8 +70,20 @@ export function AppProvider({ children }) {
       setAgentConversationFlow,
       agentStartingScript,
       setAgentStartingScript,
+      smePrompt: agentSystemPrompt,
+      setSmePrompt: setAgentSystemPrompt,
+      greeting: agentGreeting,
+      setGreeting: setAgentGreeting,
+      roleObjectives: agentRoleObjectives,
+      setRoleObjectives: setAgentRoleObjectives,
+      conversationFlow: agentConversationFlow,
+      setConversationFlow: setAgentConversationFlow,
+      startingScript: agentStartingScript,
+      setStartingScript: setAgentStartingScript,
       agentId,
       setAgentId,
+      agentName,
+      setAgentName,
       agentEmbedUrl,
       setAgentEmbedUrl,
       sessionId,
@@ -70,8 +92,12 @@ export function AppProvider({ children }) {
       setTranscript,
       attackPoints,
       setAttackPoints,
+      documentSummary,
+      setDocumentSummary,
       grades,
       setGrades,
+      sessionDuration,
+      setSessionDuration,
       resetApp: () => {
         setUserId(initialState.userId)
         setScenario(initialState.scenario)
@@ -81,11 +107,14 @@ export function AppProvider({ children }) {
         setAgentConversationFlow(initialState.agentConversationFlow)
         setAgentStartingScript(initialState.agentStartingScript)
         setAgentId(initialState.agentId)
+        setAgentName(initialState.agentName)
         setAgentEmbedUrl(initialState.agentEmbedUrl)
         setSessionId(initialState.sessionId)
         setTranscript([...initialState.transcript])
         setAttackPoints(initialState.attackPoints)
+        setDocumentSummary(initialState.documentSummary)
         setGrades(initialState.grades)
+        setSessionDuration(initialState.sessionDuration)
       },
     }),
     [
@@ -97,11 +126,14 @@ export function AppProvider({ children }) {
       agentConversationFlow,
       agentStartingScript,
       agentId,
+      agentName,
       agentEmbedUrl,
       sessionId,
       transcript,
       attackPoints,
+      documentSummary,
       grades,
+      sessionDuration,
     ],
   )
 

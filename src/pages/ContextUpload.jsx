@@ -19,7 +19,14 @@ export default function ContextUpload() {
     setAgentStartingScript,
     setAgentId,
     setAgentEmbedUrl,
+    setAgentName,
     setSessionId,
+    setDocumentSummary,
+    setSmePrompt,
+    setGreeting,
+    setRoleObjectives,
+    setConversationFlow,
+    setStartingScript,
     scenario,
   } = useApp()
   const [busy, setBusy] = useState(false)
@@ -29,16 +36,19 @@ export default function ContextUpload() {
     async (file) => {
       setBusy(true)
       try {
-        setLoadingMessage('> GPT-4o is reading your document...')
-        const [docResult] = await Promise.all([processDocument(file), sleep(1500)])
+        setLoadingMessage('> Reading your document...')
+        const [docResult] = await Promise.all([
+          processDocument(file),
+          sleep(1500),
+        ])
         if (!docResult?.success || !docResult.prompts) {
-          if (docResult && !docResult.success) {
-            toast.error('Analysis failed. Try a smaller PDF.')
-          }
           return
         }
 
-        setLoadingMessage('> Structuring role, flow, and opening script...')
+        setLoadingMessage('> GPT-4o identifying weak arguments and key claims...')
+        await sleep(1500)
+
+        setLoadingMessage('> Generating panel member personas...')
         await sleep(1500)
 
         const {
@@ -47,39 +57,37 @@ export default function ContextUpload() {
           starting_script,
           system_prompt,
           greeting,
+          document_summary,
         } = docResult.prompts
 
+        setSmePrompt(system_prompt ?? null)
+        setGreeting(greeting ?? null)
+        setRoleObjectives(role_objectives ?? null)
+        setConversationFlow(conversation_flow_structure ?? null)
+        setStartingScript(starting_script ?? null)
+        setDocumentSummary(document_summary ?? null)
+        setAgentSystemPrompt(system_prompt ?? null)
+        setAgentGreeting(greeting ?? null)
         setAgentRoleObjectives(role_objectives ?? null)
         setAgentConversationFlow(conversation_flow_structure ?? null)
         setAgentStartingScript(starting_script ?? null)
-        setAgentSystemPrompt(system_prompt ?? null)
-        setAgentGreeting(greeting ?? null)
 
-        const agentPayload = {
-          system_prompt: system_prompt ?? '',
-          greeting: greeting ?? '',
-          name: `agent-${Date.now()}`,
-        }
-
-        setLoadingMessage('> Creating your Beyond Presence agent...')
+        setLoadingMessage('> Initializing your defense panel...')
         const [sessionResult] = await Promise.all([
-          startSession(agentPayload, file),
+          startSession({
+            system_prompt: system_prompt ?? '',
+            greeting: greeting ?? '',
+          }),
           sleep(1500),
         ])
-        if (!sessionResult?.success) {
-          toast.error('Agent creation failed. Check API key.')
-          return
-        }
 
-        if (sessionResult.knowledge_upload_warning) {
-          console.warn(
-            '[start-session]',
-            sessionResult.knowledge_upload_warning,
-          )
+        if (!sessionResult?.success) {
+          return
         }
 
         setAgentId(sessionResult.agent_id ?? null)
         setAgentEmbedUrl(sessionResult.agent_embed_url ?? null)
+        setAgentName(sessionResult.agent_name ?? null)
         setSessionId(
           typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
@@ -87,7 +95,7 @@ export default function ContextUpload() {
         )
 
         toast.success('Panel initialized')
-        setLoadingMessage('> Ready. Opening arena.')
+        setLoadingMessage('> The panel is ready. Good luck.')
         await sleep(1500)
 
         navigate('/arena')
@@ -102,10 +110,17 @@ export default function ContextUpload() {
       setAgentEmbedUrl,
       setAgentGreeting,
       setAgentId,
+      setAgentName,
       setAgentRoleObjectives,
       setAgentStartingScript,
       setAgentSystemPrompt,
+      setConversationFlow,
+      setDocumentSummary,
+      setGreeting,
+      setRoleObjectives,
       setSessionId,
+      setSmePrompt,
+      setStartingScript,
     ],
   )
 

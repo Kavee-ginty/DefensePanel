@@ -1,0 +1,444 @@
+# ============================================================
+# .cursorrules — The Defense Panel
+# Cursor Colombo Buildathon | May 16–17, 2026
+# Track: Best Use of Beyond Presence
+# ============================================================
+
+# ── PROJECT IDENTITY ────────────────────────────────────────
+
+You are an expert React 19 + Vite 8 engineer building "The Defense Panel"
+— a real-time AI simulation platform where a hyper-realistic Beyond Presence
+avatar interrogates users on their uploaded presentation documents.
+
+Stack: React 19 (Vite 8), React Router 7, Tailwind CSS 4, Vercel Serverless
+Functions (/api), OpenAI GPT-4o, Beyond Presence API (https://api.bey.dev),
+Supabase (PostgreSQL), pdf-parse, formidable, react-hot-toast.
+
+This is a 24-hour hackathon build.
+EVERY decision must prioritize WORKING DEMO over perfect architecture.
+DO NOT over-engineer. DO NOT refactor working code.
+If something works, leave it alone.
+
+# ── FRAMEWORK RULES ─────────────────────────────────────────
+
+- React 19 + Vite 8. NEVER use Next.js or server components.
+- Functional components + hooks only (useState, useRef, useEffect, useContext).
+- NEVER use class components.
+- NEVER use Redux. Use React Context API only.
+- NEVER use Prisma or any ORM. Use @supabase/supabase-js directly.
+- NEVER use Express.js. All backend logic is Vercel Serverless in /api.
+- Keep every component under 200 lines. Split if longer.
+- NEVER call OpenAI or Beyond Presence directly from React components.
+  All external API calls go through /api routes only.
+
+# ── CURRENT TECH VERSIONS ───────────────────────────────────
+
+React: 19
+Vite: 8
+React Router: 7
+Tailwind CSS: 4 (uses @import "tailwindcss" in index.css, NOT @tailwind directives)
+PostCSS plugin: @tailwindcss/postcss (NOT tailwindcss directly in postcss.config)
+Node serverless: @vercel/node
+
+# ── FOLDER STRUCTURE ────────────────────────────────────────
+
+DefensePanel/
+├── api/
+│   ├── process-document.js   ← PDF → formidable → pdf-parse → GPT-4o → prompts JSON
+│   ├── start-session.js      ← prompts → POST /v1/agents → agent_id + embed_url
+│   └── end-session.js        ← transcript_text → GPT-4o grade → Supabase insert → DELETE agent
+├── src/
+│   ├── components/
+│   │   ├── Button.jsx
+│   │   ├── Card.jsx
+│   │   ├── Dropzone.jsx
+│   │   ├── AvatarView.jsx
+│   │   └── ArenaControls.jsx
+│   ├── pages/
+│   │   ├── ModeSelection.jsx     ← /
+│   │   ├── ContextUpload.jsx     ← /setup
+│   │   ├── SimulationArena.jsx   ← /arena
+│   │   ├── DebriefDashboard.jsx  ← /debrief
+│   │   └── AgentTest.jsx         ← /agent-test (temp smoke test, keep it)
+│   ├── context/
+│   │   └── AppContext.jsx
+│   ├── lib/
+│   │   ├── api.js
+│   │   └── supabase.js
+│   └── main.jsx
+├── supabase/
+│   └── pitch_sessions_transcript_columns.sql
+├── .env (server secrets — never commit)
+├── .env.local (can be used for local overrides)
+├── vercel.json
+├── vite.config.js
+├── postcss.config.js
+├── tailwind.config.js (may not exist in v4 — that is fine)
+└── .cursorrules
+
+# ── ROUTING ─────────────────────────────────────────────────
+
+Strict linear flow. No free navigation. No global navbar.
+
+/             → ModeSelection.jsx   (always accessible)
+/setup        → ContextUpload.jsx   (requires: scenario in context)
+/arena        → SimulationArena.jsx (requires: agentEmbedUrl in context → else redirect /)
+/debrief      → DebriefDashboard.jsx (requires: grades in context or location state)
+/agent-test   → AgentTest.jsx       (hardcoded smoke test — keep for demo fallback)
+
+# ── ENVIRONMENT VARIABLES ───────────────────────────────────
+
+Frontend (.env or .env.local — VITE_ prefix, safe to expose):
+  VITE_SUPABASE_URL=
+  VITE_SUPABASE_ANON_KEY=
+  DEV_API_ORIGIN=http://127.0.0.1:3000
+
+Backend (.env — NO VITE_ prefix, server only, NEVER in frontend code):
+  OPENAI_API_KEY=
+  BEYOND_PRESENCE_API_KEY=
+  BEY_AVATAR_ID=
+  SUPABASE_URL=
+  SUPABASE_ANON_KEY=
+  BEY_CHAT_EMBED_ORIGIN=https://bey.chat
+
+# ── AGENT PIPELINE (SINGLE AGENT ARCHITECTURE) ──────────────
+
+This project uses ONE Beyond Presence agent per session, not two.
+The agent is created fresh for every PDF upload with document-specific prompts.
+
+STEP 1 — api/process-document.js
+  Input:  multipart/form-data with field "pdf" (PDF file)
+  Action: formidable parses upload → pdf-parse extracts text →
+          GPT-4o generates JSON with these exact keys:
+          system_prompt, greeting, role_objectives,
+          conversation_flow_structure, starting_script, document_summary
+  Output: { success: true, prompts: { ...above keys }, document_summary }
+  GPT-4o temperature: 0.3
+  response_format: { type: "json_object" }
+  system_prompt must be under 900 characters
+  All values must be plain strings — no nested objects
+
+STEP 2 — api/start-session.js
+  Input:  multipart/form-data with fields: system_prompt, greeting, name (optional)
+  Action: POST https://api.bey.dev/v1/agents with:
+          { avatar_id: BEY_AVATAR_ID, system_prompt, greeting, name }
+          Headers: { x-api-key: BEYOND_PRESENCE_API_KEY }
+  Build embed URL: `https://bey.chat/embed/${agentData.id}`
+  DO NOT attempt any knowledge base PDF upload — it is not a public API
+  Output: { success: true, agent_id, agent_embed_url, agent_name }
+
+STEP 3 — api/end-session.js
+  Input:  JSON body: { transcript_text, agent_id, scenario_type, duration_seconds }
+  Action:
+    1. Grade transcript_text with GPT-4o (temperature 0.2)
+    2. Insert into Supabase pitch_sessions
+    3. Fire-and-forget DELETE https://api.bey.dev/v1/agents/{agent_id}
+  Output: { success: true, grades: { filler_word_count, pacing_score,
+            clarity_score, overall_score, top_3_improvements, critical_feedback } }
+  If transcript_text is empty use: "No transcript provided for this session."
+
+# ── GPT-4o PROMPTS ───────────────────────────────────────────
+
+PROCESS DOCUMENT PROMPT (api/process-document.js):
+System: "You are an expert at reading project documents and generating
+precise AI agent configuration for a defense panel simulation.
+You always output valid JSON only. No markdown, no backticks, no explanation."
+
+User: "You are generating configuration for a hyper-critical AI defense
+panel judge. Read this document completely and output ONLY a valid JSON
+object with exactly these 6 keys:
+
+system_prompt: Under 900 characters. Include: exact project name and
+one sentence on what it does, exactly 3 specific technical claims with
+real numbers or metrics from the document, exactly 2 budget or timeline
+figures from the document, exactly 2 team roles from the document.
+End with: Ask one sharp question at a time. Never accept vague answers.
+Challenge every metric. Demand justification for every technology choice.
+
+greeting: One sentence. Start with Hello. Name the project. State you
+are here to critically evaluate it.
+
+role_objectives: Max 3 sentences. Skeptical evaluator role, specific
+technical areas to probe, professional but unimpressed tone.
+
+conversation_flow_structure: Exactly 5 numbered steps as a single string.
+Step 1: Core technical approach. Step 2: Challenge most ambitious claim.
+Step 3: Probe budget with exact figures. Step 4: Question team capability.
+Step 5: Ask for single biggest risk to project success.
+
+starting_script: 2-3 sentences. Name project. Say proposal reviewed.
+Name most technically ambitious component explicitly.
+
+document_summary: 150-200 words plain English. Include project name,
+what it does, core components, budget total, team structure, 3 most
+ambitious claims.
+
+Document: [extracted PDF text]"
+
+END SESSION GRADING PROMPT (api/end-session.js):
+System: "You are a professional presentation coach grading a defense
+panel session. Output valid JSON only. No markdown, no backticks."
+
+User: "Grade this transcript. Output ONLY JSON with these keys:
+filler_word_count (number — count: um uh like basically you know
+sort of kind of right so yeah),
+pacing_score (1-10),
+clarity_score (1-10),
+overall_score (0-100),
+top_3_improvements (array of 3 strings referencing what was actually said),
+critical_feedback (2-3 sentences, direct, specific, references transcript)
+
+Transcript: [transcript_text]"
+
+# ── GLOBAL STATE (AppContext.jsx) ───────────────────────────
+
+Context must hold ALL of these fields:
+
+  userId: "demo-user-1"         // hardcoded, no auth
+  scenario: null                // "Startup Pitch" | "Academic Viva" | "Tech Interview"
+  agentId: null                 // Beyond Presence agent ID
+  agentEmbedUrl: null           // https://bey.chat/embed/{id}
+  agentName: null               // agent name string
+  smePrompt: null               // system_prompt from GPT-4o
+  greeting: null                // greeting from GPT-4o
+  roleObjectives: null          // role_objectives from GPT-4o
+  conversationFlow: null        // conversation_flow_structure from GPT-4o
+  startingScript: null          // starting_script from GPT-4o
+  documentSummary: null         // document_summary from GPT-4o
+  grades: null                  // grading result from end-session
+  sessionDuration: 0            // seconds, set on end session
+
+Provide setter for every field.
+Export useApp() hook and AppProvider component.
+
+# ── API CLIENT (src/lib/api.js) ──────────────────────────────
+
+Three functions. All wrap fetch in try/catch.
+All show toast.error on failure and return null.
+
+processDocument(file):
+  FormData with field "pdf" → POST /api/process-document
+  Returns full response data including prompts and document_summary
+
+startSession({ system_prompt, greeting }):
+  FormData with system_prompt, greeting, name="defense-panel-"+Date.now()
+  POST /api/start-session
+  Returns { agent_id, agent_embed_url, agent_name }
+
+endSession({ transcript_text, agent_id, scenario_type, duration_seconds }):
+  JSON POST /api/end-session
+  Returns { grades }
+
+# ── COMPONENT SPECS ──────────────────────────────────────────
+
+AvatarView.jsx:
+  Props: { embedUrl, label }
+  null embedUrl → pulsing skeleton + "Connecting..." text
+  valid embedUrl → iframe with:
+    src={embedUrl}
+    allow="camera *; microphone *; display-capture *; autoplay *; clipboard-write *"
+    allowFullScreen={true}
+    className="w-full h-full border-0"
+    title="Defense Panel AI Agent"
+  Label: bottom-left absolute, text-xs text-zinc-400
+  Wrapper: aspect-video rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden relative
+
+ArenaControls.jsx:
+  Props: { onMute, onVideoToggle, onEndSession, isMuted, isVideoOff }
+  Floating pill dock fixed bottom center
+  Mic icon: red background when muted
+  Camera icon: red background when video off
+  End Session: bg-red-600, always requires window.confirm before firing
+
+SimulationArena.jsx:
+  Guard: useEffect → if no agentEmbedUrl → navigate('/')
+  Left 50%: user webcam via getUserMedia, video element mirrored
+  Right 50%: AvatarView with agentEmbedUrl from context
+  Bottom: transcript textarea + ArenaControls
+  Transcript textarea: bg-zinc-900/80 border border-zinc-700 rounded-lg
+    p-3 text-zinc-300 text-sm w-full max-w-2xl mx-auto resize-none rows=3
+    placeholder="Summarise what you presented... (used for your debrief score)"
+  sessionStartTime: useRef(Date.now()) set on mount
+  On end session: call endSession with transcript + duration, navigate /debrief
+
+ContextUpload.jsx:
+  After processDocument() success: save ALL 6 prompt fields to context
+  After startSession() success: save agentId, agentEmbedUrl, agentName to context
+  Loading overlay: full screen bg-black/90 with sequential messages:
+    "> Reading your document..."            (1500ms)
+    "> GPT-4o identifying weak arguments..."(1500ms)
+    "> Generating panel member persona..."  (1500ms)
+    "> Initializing your defense panel..."  (1500ms)
+    "> The panel is ready. Good luck."      (1500ms then navigate /arena)
+  Use chained setTimeout, not setInterval
+
+Dropzone.jsx:
+  Accept PDF only
+  Pass raw File object to onFileAccepted(file)
+  States: idle / drag-over (border-blue-500) / success (show filename)
+  Validate: file.type === "application/pdf" before accepting
+
+# ── STYLING ──────────────────────────────────────────────────
+
+DARK MODE ONLY. Never add light mode.
+
+Backgrounds:  bg-black, bg-zinc-950, bg-zinc-900
+Text:         text-zinc-50 (headings), text-zinc-400 (body), text-zinc-300 (inputs)
+Accent:       text-blue-500, border-blue-500, ring-blue-500
+Danger:       bg-red-600, border-red-500
+Cards:        bg-zinc-900/40 border border-white/5 backdrop-blur-sm rounded-xl
+
+Buttons:
+  primary: bg-blue-600 text-white hover:bg-blue-500
+           shadow-[0_0_15px_rgba(37,99,235,0.4)] rounded-lg px-4 py-2
+  ghost:   border border-zinc-700 text-zinc-300 hover:bg-zinc-800 rounded-lg px-4 py-2
+  danger:  bg-red-600 text-white hover:bg-red-500 rounded-lg px-4 py-2
+
+Animations: duration-150 ease-out only. No slow or floaty effects.
+Loading text: terminal style "> Doing something..." never a spinner alone.
+Icons: lucide-react, thin line, monocolor, consistent stroke
+
+# ── ERROR HANDLING ───────────────────────────────────────────
+
+react-hot-toast for all user-facing messages.
+
+Success: "Document parsed successfully" | "Panel initialized" | "Session saved"
+Error:   "Could not analyze document. Try a smaller PDF."
+         "Could not initialize panel. Check API keys."
+         "Could not save session results."
+         "Connection lost. Returning to lobby."
+
+Never show raw errors or stack traces to the user.
+Always console.error internally.
+Wrap all /api calls in try/catch.
+
+# ── SUPABASE ─────────────────────────────────────────────────
+
+One table only: pitch_sessions
+
+Schema:
+  id                uuid PK default gen_random_uuid()
+  created_at        timestamptz default now()
+  user_id           text default 'demo-user-1'
+  scenario_type     text not null
+  document_summary  text
+  transcript_text   text
+  duration_seconds  integer default 0
+  filler_word_count integer default 0
+  critical_feedback text
+  overall_score     integer
+  bey_call_id       text
+  is_active         boolean default true
+
+src/lib/supabase.js:
+  import { createClient } from '@supabase/supabase-js'
+  export const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+  )
+
+# ── VITE CONFIG ──────────────────────────────────────────────
+
+vite.config.js must proxy /api to DEV_API_ORIGIN:
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.DEV_API_ORIGIN || 'http://127.0.0.1:3000',
+        changeOrigin: true,
+      }
+    }
+  }
+})
+
+# ── RUNNING LOCALLY ──────────────────────────────────────────
+
+Always run from DefensePanel/ folder, never from the parent DefencePanel/ folder.
+
+Terminal 1 (API + env):
+  cd C:\Users\User\Documents\DefencePanel\DefensePanel
+  vercel dev --port 3000
+
+Terminal 2 (Vite frontend):
+  cd C:\Users\User\Documents\DefencePanel\DefensePanel
+  npm run dev
+
+Open: http://localhost:5173 (NOT localhost:3000)
+
+# ── DEPLOYMENT ───────────────────────────────────────────────
+
+Platform: Vercel free tier
+Every push to main auto-deploys.
+Test live Vercel URL at hour 8+ — WebRTC behaves differently over internet.
+
+vercel.json:
+{
+  "version": 2,
+  "devCommand": "npm run dev",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/$1" }]
+}
+
+Rollback if broken:
+  Vercel Dashboard → Deployments → last green build → ... → Promote to Production
+  NEVER fix broken code under time pressure. Always rollback first.
+
+# ── GIT ──────────────────────────────────────────────────────
+
+Trunk-based. Push directly to main. No branches.
+
+Prefixes:
+  feat:   new feature
+  fix:    bug fix
+  ui:     styling change
+  api:    /api route change
+  config: env / build config
+
+# ── DEMO SCRIPT (memorize this) ─────────────────────────────
+
+The 5-minute pitch ends with exactly 1 minute of live demo.
+
+1. Have the AirTrixx PDF pre-loaded and ready
+2. Open http://localhost:5173 (or live Vercel URL)
+3. Click "Startup Pitch"
+4. Drop the PDF into the dropzone
+5. Show the 5 loading messages appearing
+6. Arena opens — avatar iframe visible on right
+7. Say: "AirTrixx is a gesture-based laptop control system.
+         Our budget is 50,850 LKR and we believe the market is huge."
+8. Avatar interrupts: challenges the budget or market claim specifically
+9. Crowd reacts. Demo ends. You win.
+
+FALLBACK: If live demo fails, play the pre-recorded 2-minute video immediately.
+Never stand at a broken screen. Cut to video without apologizing.
+
+# ── WHAT TO NEVER TOUCH ──────────────────────────────────────
+
+Do NOT attempt these — they will waste time and break things:
+  - Beyond Presence knowledge base PDF upload (no public API)
+  - Two simultaneous avatar agents (session length + bandwidth issues)
+  - Beyond Presence Calls API transcript fetching (undocumented)
+  - Authentication or user login flow
+  - Mobile responsive layout
+  - Redux or Zustand
+  - Any database beyond pitch_sessions table
+
+# ── KNOWN WORKING STATE ──────────────────────────────────────
+
+As of buildathon day these things ARE confirmed working:
+  - PDF upload + text extraction (formidable + pdf-parse)
+  - GPT-4o prompt generation from PDF content
+  - Beyond Presence agent creation via POST /v1/agents
+  - Embed URL pattern: https://bey.chat/embed/{agent_id}
+  - Avatar loads in iframe with camera + microphone permissions
+  - Webcam feed in SimulationArena via getUserMedia
+  - Supabase insert into pitch_sessions
+  - /agent-test route as smoke test fallback
+
+DO NOT BREAK THESE. Fix around them, not through them.
