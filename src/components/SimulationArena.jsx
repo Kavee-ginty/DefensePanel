@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { MessageSquare, Play } from 'lucide-react';
 import { getModeConfig } from '../config/modeConfig.js';
 import { getBeyEmbedUrl } from '../config/beyEmbeds.js';
 import BeyPanelFrame from './BeyPanelFrame.jsx';
+import BeyAgentCall from './BeyAgentCall.jsx';
 import PdfPresentationView from './PdfPresentationView.jsx';
 import UserVideo from './UserVideo.jsx';
 import ArenaControls from './ArenaControls.jsx';
@@ -21,6 +23,7 @@ function formatDifficulty(raw) {
 export default function SimulationArena({
   mode,
   documentFile = null,
+  agentId = null,
   agentEmbedUrl = null,
   briefingSetup = null,
   onEndSession,
@@ -28,26 +31,38 @@ export default function SimulationArena({
   const config = getModeConfig(mode);
   const showDocPreview = Boolean(documentFile);
   const sessionStartedAt = useRef(Date.now());
+  const beyAgentRef = useRef(null);
+  const [started, setStarted] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [chatText, setChatText] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const [chatError, setChatError] = useState(null);
 
-  // Slot 0 uses the freshly-generated agent (from /api/start-session); the
-  // remaining slots fall back to the static config URLs so the panel still
-  // looks fully populated.
+  // Slot 0 uses the freshly-generated agent: LiveKit (headless) when we have
+  // agentId; otherwise iframe embed if only URL is available. Remaining slots
+  // use static config URLs.
   const panels = useMemo(
     () =>
       config.panelists.map((p, index) => {
-        const isLiveSlot = index === 0 && Boolean(agentEmbedUrl);
+        const useHeadlessLiveKit = index === 0 && Boolean(agentId);
+        const useAgentIframe =
+          index === 0 && Boolean(agentEmbedUrl) && !useHeadlessLiveKit;
+
+        let embedUrl = p.beyChatUrl ?? getBeyEmbedUrl(index);
+        if (useAgentIframe) embedUrl = agentEmbedUrl;
+
+        const isLiveSlot = useHeadlessLiveKit || useAgentIframe;
+
         return {
           label: isLiveSlot ? `${p.label} · Live` : p.label,
-          embedUrl: isLiveSlot
-            ? agentEmbedUrl
-            : (p.beyChatUrl ?? getBeyEmbedUrl(index)),
+          embedUrl,
           isBargeIn: false,
+          useHeadlessLiveKit,
         };
       }),
-    [config.panelists, agentEmbedUrl],
+    [config.panelists, agentId, agentEmbedUrl],
   );
 
   const handleEndConfirm = () => {
@@ -61,6 +76,34 @@ export default function SimulationArena({
       modeId: mode,
     });
   };
+
+  const handleStartDefense = () => {
+    sessionStartedAt.current = Date.now();
+    setStarted(true);
+  };
+
+  const handleSendChat = useCallback(
+    async (e) => {
+      e?.preventDefault();
+      const msg = chatText.trim();
+      if (!msg || chatSending) return;
+      setChatSending(true);
+      setChatError(null);
+      try {
+        const api = beyAgentRef.current;
+        if (!api?.sendMessage) {
+          throw new Error('Panelist chat is not available');
+        }
+        await api.sendMessage(msg);
+        setChatText('');
+      } catch (err) {
+        setChatError(err?.message || 'Could not send message');
+      } finally {
+        setChatSending(false);
+      }
+    },
+    [chatText, chatSending],
+  );
 
   const rehearsalHint = briefingSetup && (
     <div className="absolute right-3 top-2 z-20 hidden max-w-md rounded-xl border border-cyan-500/35 bg-black/65 px-3 py-2 text-[11px] font-medium leading-snug text-cyan-100/95 shadow-lg backdrop-blur-sm sm:flex sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-1">
@@ -80,7 +123,7 @@ export default function SimulationArena({
     </div>
   );
 
-  const liveBadge = (
+  const liveBadge = started && (
     <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
       <span
         className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
@@ -90,7 +133,7 @@ export default function SimulationArena({
     </div>
   );
 
-  const arenaControls = (
+  const arenaControls = started && (
     <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2">
       <ArenaControls
         muted={muted}
@@ -104,15 +147,65 @@ export default function SimulationArena({
 
   const panelColumn = (
     <div className="flex h-full min-h-0 w-full shrink-0 flex-col gap-3 lg:w-[380px]">
-      {panels.map((panel, index) => (
-        <BeyPanelFrame
-          key={panel.label + index}
-          embedUrl={panel.embedUrl}
-          label={panel.label}
-          isBargeIn={panel.isBargeIn}
-          fillHeight
-        />
-      ))}
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        {panels.map((panel, index) =>
+          panel.useHeadlessLiveKit ? (
+            <BeyAgentCall
+              ref={beyAgentRef}
+              key="bey-livekit-slot"
+              agentId={agentId}
+              started={started}
+              muted={muted}
+              label={panel.label}
+              fillHeight
+            />
+          ) : (
+            <BeyPanelFrame
+              key={panel.label + index}
+              embedUrl={panel.embedUrl}
+              label={panel.label}
+              isBargeIn={panel.isBargeIn}
+              fillHeight
+            />
+          ),
+        )}
+      </div>
+
+      {started && agentId && (
+        <form
+          onSubmit={handleSendChat}
+          className="shrink-0 rounded-xl border border-white/10 bg-zinc-950/80 p-2.5 shadow-lg backdrop-blur-sm"
+        >
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={chatText}
+              onChange={(ev) => {
+                setChatText(ev.target.value);
+                if (chatError) setChatError(null);
+              }}
+              placeholder="Send message to avatar..."
+              disabled={chatSending}
+              autoComplete="off"
+              className="min-w-0 flex-1 rounded-lg border border-zinc-700/80 bg-black/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-cyan-500/50 focus:outline-none focus:ring-1 focus:ring-cyan-500/40 disabled:opacity-50"
+              aria-label="Message to avatar"
+            />
+            <button
+              type="submit"
+              disabled={!chatText.trim() || chatSending}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/15 px-3 py-2 text-sm font-semibold text-cyan-50 transition-colors hover:bg-cyan-500/25 disabled:pointer-events-none disabled:opacity-40"
+            >
+              <MessageSquare className="h-4 w-4" strokeWidth={2} aria-hidden />
+              Chat
+            </button>
+          </div>
+          {chatError && (
+            <p className="mt-2 text-xs text-red-300" role="alert">
+              {chatError}
+            </p>
+          )}
+        </form>
+      )}
     </div>
   );
 
@@ -123,7 +216,7 @@ export default function SimulationArena({
       </div>
       {rehearsalHint}
 
-      <div className="mx-auto flex h-[calc(100dvh-4.75rem)] max-h-[calc(100dvh-4.75rem)] max-w-6xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
+      <div className="relative mx-auto flex h-[calc(100dvh-4.75rem)] max-h-[calc(100dvh-4.75rem)] max-w-6xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
         <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
           {showDocPreview ? (
             <PdfPresentationView file={documentFile} arena />
@@ -156,6 +249,23 @@ export default function SimulationArena({
           {arenaControls}
         </div>
         {panelColumn}
+
+        {!started && (
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/80 px-6 backdrop-blur-sm">
+            <p className="max-w-md text-center text-sm text-zinc-400">
+              When you&apos;re ready, start the defense. Your live panelist will
+              connect automatically — no extra clicks inside the embed.
+            </p>
+            <button
+              type="button"
+              onClick={handleStartDefense}
+              className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/20 px-8 py-3 text-base font-semibold text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.25)] transition-colors hover:bg-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-black"
+            >
+              <Play className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+              Start Defense
+            </button>
+          </div>
+        )}
       </div>
 
       <EndSessionModal

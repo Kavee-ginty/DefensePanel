@@ -335,6 +335,7 @@ export default function App() {
             <SimulationArena
               mode={mode}
               documentFile={file}
+              agentId={agentSession?.agentId ?? null}
               agentEmbedUrl={agentSession?.agentEmbedUrl ?? null}
               briefingSetup={briefingSetup}
               onEndSession={handleEndSession}
