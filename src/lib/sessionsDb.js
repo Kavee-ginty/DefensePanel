@@ -15,6 +15,21 @@ function assertConfigured() {
   }
 }
 
+/**
+ * Current signed-in user id for defense-in-depth filtering (never rely on RLS alone).
+ * @returns {Promise<string>}
+ */
+async function requireAuthUserId() {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user?.id) {
+    throw new Error('Not signed in');
+  }
+  return user.id;
+}
+
 function normalizeScenarioType(value, modeId) {
   const valid = ['pitch', 'interview', 'presentation'];
   if (valid.includes(value)) return value;
@@ -22,10 +37,14 @@ function normalizeScenarioType(value, modeId) {
   return 'pitch';
 }
 
-async function fetchRecentForChart() {
+/**
+ * @param {string} userId
+ */
+async function fetchRecentForChart(userId) {
   const { data, error } = await supabase
     .from('pitch_sessions')
     .select('id, overall_score, created_at')
+    .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(10);
 
@@ -40,9 +59,12 @@ export function chartFromSessions(sessions) {
 export async function listSessions() {
   assertConfigured();
 
+  const userId = await requireAuthUserId();
+
   const { data, error } = await supabase
     .from('pitch_sessions')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(LIST_LIMIT);
 
@@ -53,13 +75,16 @@ export async function listSessions() {
 export async function getSession(id) {
   assertConfigured();
 
+  const userId = await requireAuthUserId();
+
   const [sessionResult, chart] = await Promise.all([
     supabase
       .from('pitch_sessions')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .maybeSingle(),
-    fetchRecentForChart(),
+    fetchRecentForChart(userId),
   ]);
 
   if (sessionResult.error) throw new Error(sessionResult.error.message);
@@ -71,10 +96,13 @@ export async function getSession(id) {
 export async function updateSessionBookmark(id, bookmarked) {
   assertConfigured();
 
+  const userId = await requireAuthUserId();
+
   const { data, error } = await supabase
     .from('pitch_sessions')
     .update({ bookmarked })
     .eq('id', id)
+    .eq('user_id', userId)
     .select('*')
     .maybeSingle();
 
@@ -89,6 +117,11 @@ export async function insertSession(payload, userId) {
 
   if (!userId) {
     throw new Error('You must be signed in to save a session.');
+  }
+
+  const authUserId = await requireAuthUserId();
+  if (authUserId !== userId) {
+    throw new Error('Cannot save a session for another account.');
   }
 
   const { mode_id, scenario_type, duration_seconds } = payload;
