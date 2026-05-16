@@ -1,0 +1,34 @@
+# Build artifacts (Vercel rebuilds from source)
+dist
+node_modules
+
+# Local env (Vercel uses dashboard-provided env vars in production)
+.env
+.env.local
+.env.*.local
+
+# Local Vercel CLI state
+.vercel
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Repo docs / planning — not needed at runtime
+AppFlow.md
+BackendSchema.md
+essentials.md
+ImplementationPlan.md
+PRD.md
+REQUIREMENTS.md
+TRD.md
+UI_UX_Brief.md
+
+# Database setup scripts (run manually in Supabase, not at deploy time)
+supabase
+
+# Cursor / agent metadata
+.cursor
+.cursorrules
