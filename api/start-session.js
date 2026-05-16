@@ -1,5 +1,9 @@
-/* global process */
+﻿/* global process */
 import { formidable } from 'formidable'
+import {
+  composeAgentSystemPrompt,
+  parseBriefingSetup,
+} from './_lib/briefingPrompt.js'
 
 const BEYOND_AGENTS_URL = 'https://api.bey.dev/v1/agents'
 
@@ -42,12 +46,11 @@ function getField(fields, name) {
   return v?.toString() ?? ''
 }
 
-async function createAgent({ avatar_id, name, system_prompt, greeting }) {
-  const body = { avatar_id, name, system_prompt }
-  if (greeting && String(greeting).trim()) {
-    body.greeting = String(greeting).trim()
-  }
-
+/**
+ * @param {Record<string, unknown>} body
+ * @returns {Promise<unknown>}
+ */
+async function createAgentRequest(body) {
   const response = await fetch(BEYOND_AGENTS_URL, {
     method: 'POST',
     headers: {
@@ -64,16 +67,67 @@ async function createAgent({ avatar_id, name, system_prompt, greeting }) {
       payload && typeof payload === 'object'
         ? JSON.stringify(payload)
         : String(payload ?? '')
-    throw new Error(
+    const err = new Error(
       payload?.error?.message ||
         payload?.message ||
         (extra !== '{}' && extra !== 'null'
           ? `Beyond Presence ${response.status}: ${extra}`
           : `Beyond Presence failed with ${response.status}`),
     )
+    Object.assign(err, { status: response.status })
+    throw err
   }
 
   return payload
+}
+
+/**
+ * @param {{
+ *   avatar_id: string
+ *   name: string
+ *   system_prompt: string
+ *   greeting: string
+ *   max_session_length_minutes?: number
+ * }} opts
+ */
+async function createAgent(opts) {
+  const { avatar_id, name, system_prompt, greeting, max_session_length_minutes } =
+    opts
+
+  const baseBody = {
+    avatar_id,
+    name,
+    system_prompt: String(system_prompt).trim(),
+  }
+  if (greeting && String(greeting).trim()) {
+    baseBody.greeting = String(greeting).trim()
+  }
+
+  if (
+    typeof max_session_length_minutes === 'number' &&
+    max_session_length_minutes > 0
+  ) {
+    try {
+      return await createAgentRequest({
+        ...baseBody,
+        max_session_length_minutes,
+      })
+    } catch (err) {
+      const status =
+        err && typeof err === 'object' && 'status' in err
+          ? /** @type {{ status: number }} */ (err).status
+          : undefined
+      if (status === 422) {
+        console.warn(
+          '[start-session] Retrying agent create without max_session_length_minutes (422)',
+        )
+        return await createAgentRequest(baseBody)
+      }
+      throw err
+    }
+  }
+
+  return await createAgentRequest(baseBody)
 }
 
 /**
@@ -90,6 +144,10 @@ export default async function handler(req, res) {
     let system_prompt = ''
     let greeting = ''
     let name = `agent-${Date.now()}`
+    let briefingSetupRaw = ''
+    let role_objectives = ''
+    let conversation_flow_structure = ''
+    let starting_script = ''
 
     if (contentType.includes('multipart/form-data')) {
       const { fields } = await parseForm(req)
@@ -97,6 +155,13 @@ export default async function handler(req, res) {
       greeting = getField(fields, 'greeting')
       const nameField = getField(fields, 'name')
       if (nameField) name = nameField
+      briefingSetupRaw = getField(fields, 'briefing_setup')
+      role_objectives = getField(fields, 'role_objectives')
+      conversation_flow_structure = getField(
+        fields,
+        'conversation_flow_structure',
+      )
+      starting_script = getField(fields, 'starting_script')
     } else {
       throw new Error('Expected multipart form data for /api/start-session')
     }
@@ -112,11 +177,27 @@ export default async function handler(req, res) {
       )
     }
 
+    const briefingSetup = parseBriefingSetup(briefingSetupRaw)
+
+    const finalSystemPrompt = composeAgentSystemPrompt({
+      systemPrompt: system_prompt,
+      roleObjectives: role_objectives,
+      conversationFlowStructure: conversation_flow_structure,
+      startingScript: starting_script,
+      briefingSetup,
+    })
+
+    const maxSession =
+      briefingSetup?.sessionMinutes != null
+        ? briefingSetup.sessionMinutes
+        : undefined
+
     const agentData = await createAgent({
       avatar_id,
       name,
-      system_prompt: String(system_prompt).trim(),
+      system_prompt: finalSystemPrompt,
       greeting,
+      max_session_length_minutes: maxSession,
     })
 
     logAgentKeys('agent', agentData)
