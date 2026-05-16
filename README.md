@@ -12,8 +12,10 @@ A hackathon-style **Defense Panel** prototype: pick a scenario, upload a PDF, le
 ## Scripts
 
 ```bash
-npm run dev      # Vite dev server (client only unless /api is proxied)
-npm run build    # Production client bundle → dist/
+npm run dev       # Vite dev server (proxies /api → DEV_API_ORIGIN, default http://127.0.0.1:3000)
+npm run dev:api   # Local serverless API (`vercel dev` on port 3000) — run alongside `npm run dev`
+npm run dev:all   # Runs dev:api + dev together (same as two terminals)
+npm run build     # Production client bundle → dist/
 npm run lint     # ESLint
 npm run preview  # Preview production build locally
 ```
@@ -76,9 +78,10 @@ Run the migration in [`supabase/pitch_sessions_transcript_columns.sql`](supabase
 ## Local development notes
 
 1. From this folder (`DefensePanel/`): `npm install`
-2. Run API + env together, e.g. **`vercel dev`** (typical port **3000**), **or** deploy to Vercel and set `DEV_API_ORIGIN` to that deployment URL.
-3. In another terminal: `npm run dev` and open the URL Vite prints (often `http://127.0.0.1:5173`).
-4. For a quick Bey smoke test without PDF flow, open **`/agent-test`**.
+2. **PDF / `/api` routes:** start the API locally with **`npm run dev:api`** (wraps `vercel dev --listen 3000`). Ensure `.env` has `OPENAI_API_KEY` (and other keys as needed). **Or** deploy to Vercel and set `DEV_API_ORIGIN` in `.env` to that deployment URL so Vite can proxy `/api`.
+3. Start the UI: **`npm run dev`** and open the URL Vite prints (often `http://127.0.0.1:5173`). If you see “Document API is not running”, the proxy target (default `127.0.0.1:3000`) has nothing listening — run step 2 or fix `DEV_API_ORIGIN`.
+4. **One command:** `npm run dev:all` runs API + Vite together (same responsibility as two terminals).
+5. For a quick Bey smoke test without PDF flow, open **`/agent-test`**.
 
 ---
 
