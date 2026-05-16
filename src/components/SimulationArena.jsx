@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { MessageSquare, Play } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MessageSquare, Play, Timer } from 'lucide-react';
 import { getModeConfig } from '../config/modeConfig.js';
 import { getBeyEmbedUrl } from '../config/beyEmbeds.js';
 import BeyPanelFrame from './BeyPanelFrame.jsx';
@@ -20,6 +20,16 @@ function formatDifficulty(raw) {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+function formatMmSs(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+}
+
+const THIRTY_SECOND_AVATAR_PROMPT =
+  'SYSTEM TIMER NOTICE: Tell the candidate the interview will end in 30 seconds, ask for a concise final answer, and then wrap up gracefully. Do not end the session yourself.';
+
 export default function SimulationArena({
   mode,
   documentFile = null,
@@ -39,6 +49,16 @@ export default function SimulationArena({
   const [chatText, setChatText] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(() => {
+    const mins = briefingSetup?.sessionMinutes ?? 5;
+    return Math.max(0, mins * 60);
+  });
+  const thirtySecondWarningSentRef = useRef(false);
+
+  const uiTotalSeconds = useMemo(() => {
+    const mins = briefingSetup?.sessionMinutes ?? 5;
+    return Math.max(1, mins * 60);
+  }, [briefingSetup?.sessionMinutes]);
 
   // Slot 0 uses the freshly-generated agent: LiveKit (headless) when we have
   // agentId; otherwise iframe embed if only URL is available. Remaining slots
@@ -79,8 +99,36 @@ export default function SimulationArena({
 
   const handleStartDefense = () => {
     sessionStartedAt.current = Date.now();
+    thirtySecondWarningSentRef.current = false;
+    setRemainingSeconds(uiTotalSeconds);
     setStarted(true);
   };
+
+  useEffect(() => {
+    if (!started) return undefined;
+
+    const tick = () => {
+      const elapsedSec = (Date.now() - sessionStartedAt.current) / 1000;
+      const rem = Math.max(0, Math.floor(uiTotalSeconds - elapsedSec));
+      setRemainingSeconds(rem);
+
+      if (
+        rem > 0 &&
+        rem <= 30 &&
+        !thirtySecondWarningSentRef.current
+      ) {
+        thirtySecondWarningSentRef.current = true;
+        const api = beyAgentRef.current;
+        if (api?.sendMessage) {
+          void api.sendMessage(THIRTY_SECOND_AVATAR_PROMPT).catch(() => {});
+        }
+      }
+    };
+
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [started, uiTotalSeconds]);
 
   const handleSendChat = useCallback(
     async (e) => {
@@ -123,13 +171,50 @@ export default function SimulationArena({
     </div>
   );
 
-  const liveBadge = started && (
-    <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
-      <span
-        className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-        aria-hidden
-      />
-      Live Recording
+  const showThirtySecondBanner =
+    started && remainingSeconds > 0 && remainingSeconds <= 30;
+
+  const liveAndTimer = started && (
+    <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
+      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+        <span
+          className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+          aria-hidden
+        />
+        Live Recording
+      </div>
+      <div
+        className={[
+          'flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm',
+          remainingSeconds <= 0
+            ? 'border-amber-500/40 bg-amber-950/70 text-amber-100'
+            : 'border-white/10 bg-black/55 text-zinc-100',
+        ].join(' ')}
+        role="timer"
+        aria-live="polite"
+        aria-label={
+          remainingSeconds <= 0
+            ? 'Interview goal time reached'
+            : `Time remaining: ${formatMmSs(remainingSeconds)}`
+        }
+      >
+        <Timer className="h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+        {remainingSeconds <= 0 ? (
+          <span>Time reached — wrap up when ready</span>
+        ) : (
+          <span className="tabular-nums">{formatMmSs(remainingSeconds)}</span>
+        )}
+      </div>
+    </div>
+  );
+
+  const thirtySecondBanner = showThirtySecondBanner && (
+    <div
+      className="pointer-events-none absolute left-1/2 top-4 z-20 max-w-md -translate-x-1/2 rounded-xl border border-amber-500/50 bg-amber-950/90 px-4 py-2 text-center text-xs font-semibold text-amber-50 shadow-lg backdrop-blur-sm"
+      role="status"
+    >
+      Interview ends in {remainingSeconds}s — finish your point; end the session
+      when you&apos;re ready.
     </div>
   );
 
@@ -245,7 +330,8 @@ export default function SimulationArena({
             </div>
           )}
 
-          {liveBadge}
+          {thirtySecondBanner}
+          {liveAndTimer}
           {arenaControls}
         </div>
         {panelColumn}

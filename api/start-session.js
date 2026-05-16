@@ -292,6 +292,11 @@ export default async function handler(req, res) {
       briefingSetup,
     )
 
+    // UI / prompt pacing uses `maxSession` from briefing; Beyond Presence cap
+    // can be longer (e.g. 5 min rehearsal → 10 min BP) so the avatar stays
+    // available after the displayed timer hits zero until the user ends.
+    const beyondSessionCap = maxSession === 5 ? 10 : maxSession
+
     const greetingBeyond =
       String(starting_script || '').trim() ||
       String(greeting || '').trim()
@@ -311,6 +316,7 @@ export default async function handler(req, res) {
         name,
         max_session_length_raw: max_session_length_raw || '(empty)',
         max_session_resolved_minutes: maxSession,
+        beyond_session_cap_minutes: beyondSessionCap,
         briefing_setup_present: Boolean(String(briefingSetupRaw).trim()),
       })
       console.log(
@@ -327,7 +333,7 @@ export default async function handler(req, res) {
       greeting: greetingBeyond,
       conversational_flow: flowForBeyond,
       starting_script,
-      max_session_length_minutes: maxSession,
+      max_session_length_minutes: beyondSessionCap,
     })
 
     logAgentKeys('agent', agentData)
