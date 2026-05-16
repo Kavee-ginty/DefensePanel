@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Card from '../components/Card.jsx'
 import { useApp } from '../context/AppContext.jsx'
 
@@ -50,6 +50,15 @@ export default function ModeSelection() {
           </button>
         ))}
       </div>
+
+      <p className="mt-14 text-center text-sm">
+        <Link
+          to="/agent-test"
+          className="text-zinc-500 underline hover:text-zinc-400 focus-visible:outline focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        >
+          Open Bey agent test page
+        </Link>
+      </p>
     </div>
   )
 }

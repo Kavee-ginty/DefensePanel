@@ -8,6 +8,7 @@ import ModeSelection from './pages/ModeSelection.jsx'
 import ContextUpload from './pages/ContextUpload.jsx'
 import SimulationArena from './pages/SimulationArena.jsx'
 import DebriefDashboard from './pages/DebriefDashboard.jsx'
+import AgentTestPage from './pages/AgentTestPage.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/setup" element={<ContextUpload />} />
           <Route path="/arena" element={<SimulationArena />} />
           <Route path="/debrief" element={<DebriefDashboard />} />
+          <Route path="/agent-test" element={<AgentTestPage />} />
         </Routes>
         <Toaster
           position="top-right"
