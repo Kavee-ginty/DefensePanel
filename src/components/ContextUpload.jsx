@@ -1,16 +1,19 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Check, FileText, Loader2, Upload, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { getModeConfig } from '../config/modeConfig.js';
 import {
   extractDocumentText,
   getDocumentKind,
 } from '../lib/extractDocumentText.js';
+import { processDocument, startSession } from '../lib/sessionApi.js';
 
 export default function ContextUpload({
   mode = 'startup',
   file = null,
   onFileChange,
   onInitialize,
+  onAgentReady,
   onBack,
   isLoading = false,
   error = null,
@@ -24,6 +27,8 @@ export default function ContextUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [localError, setLocalError] = useState(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployStage, setDeployStage] = useState(null);
 
   const resolvedTitle = title ?? config.briefingTitle;
   const resolvedDescription = description ?? config.briefingDescription;
@@ -72,6 +77,61 @@ export default function ContextUpload({
     setIsDragging(false);
     handleFiles(e.dataTransfer?.files);
   };
+
+  const handleDeploy = useCallback(async () => {
+    if (!file) return;
+    if (file.type && file.type !== 'application/pdf') {
+      const msg = 'Backend currently only supports PDF uploads.';
+      setLocalError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    setLocalError(null);
+    setIsDeploying(true);
+
+    try {
+      setDeployStage('Reading document with GPT-4o…');
+      const docResult = await processDocument(file);
+      const prompts = docResult?.prompts;
+      if (!prompts?.system_prompt) {
+        throw new Error('Document processing returned no system prompt');
+      }
+
+      setDeployStage('Deploying defense panel agent…');
+      const agentResult = await startSession({
+        system_prompt: prompts.system_prompt,
+        greeting: prompts.greeting,
+      });
+      if (!agentResult?.agent_embed_url) {
+        throw new Error('Agent creation returned no embed URL');
+      }
+
+      onAgentReady?.({
+        agentId: agentResult.agent_id,
+        agentEmbedUrl: agentResult.agent_embed_url,
+        agentName: agentResult.agent_name,
+        prompts,
+        documentSummary: docResult.document_summary,
+      });
+
+      toast.success('Panel deployed — entering arena');
+      onInitialize?.();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not deploy the panel.';
+      setLocalError(message);
+    } finally {
+      setIsDeploying(false);
+      setDeployStage(null);
+    }
+  }, [file, onAgentReady, onInitialize]);
+
+  const buttonLabel = isDeploying
+    ? deployStage ?? 'Processing…'
+    : isLoading
+      ? 'Processing…'
+      : resolvedSubmit;
 
   return (
     <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50">
@@ -198,11 +258,14 @@ export default function ContextUpload({
 
           <button
             type="button"
-            disabled={isLoading || !file || isExtracting}
-            onClick={() => onInitialize?.()}
-            className="mt-8 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all duration-150 hover:scale-[1.02] hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
+            disabled={isLoading || isDeploying || !file || isExtracting}
+            onClick={handleDeploy}
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all duration-150 hover:scale-[1.02] hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
           >
-            {isLoading ? 'Processing…' : resolvedSubmit}
+            {(isLoading || isDeploying) && (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            )}
+            {buttonLabel}
           </button>
         </div>
       </div>

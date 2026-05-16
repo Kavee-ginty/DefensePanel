@@ -10,6 +10,7 @@ import EndSessionModal from './EndSessionModal.jsx';
 export default function SimulationArena({
   mode,
   documentFile = null,
+  agentEmbedUrl = null,
   onEndSession,
 }) {
   const config = getModeConfig(mode);
@@ -19,14 +20,22 @@ export default function SimulationArena({
   const [videoOff, setVideoOff] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
 
+  // Slot 0 uses the freshly-generated agent (from /api/start-session); the
+  // remaining slots fall back to the static config URLs so the panel still
+  // looks fully populated.
   const panels = useMemo(
     () =>
-      config.panelists.map((p, index) => ({
-        label: p.label,
-        embedUrl: p.beyChatUrl ?? getBeyEmbedUrl(index),
-        isBargeIn: false,
-      })),
-    [config.panelists],
+      config.panelists.map((p, index) => {
+        const isLiveSlot = index === 0 && Boolean(agentEmbedUrl);
+        return {
+          label: isLiveSlot ? `${p.label} · Live` : p.label,
+          embedUrl: isLiveSlot
+            ? agentEmbedUrl
+            : (p.beyChatUrl ?? getBeyEmbedUrl(index)),
+          isBargeIn: false,
+        };
+      }),
+    [config.panelists, agentEmbedUrl],
   );
 
   const handleEndConfirm = () => {

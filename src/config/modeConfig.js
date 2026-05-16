@@ -1,7 +1,7 @@
 import { ALLOWED_ACCEPT } from './allowedAccept.js';
 
-const FILE_ERROR = 'Please upload a PDF, DOCX, or PPTX file.';
-const DROPZONE_SUBTEXT = 'PDF, DOCX, or PPTX';
+const FILE_ERROR = 'Please upload a PDF file.';
+const DROPZONE_SUBTEXT = 'PDF only (v1)';
 
 export const MODE_CONFIG = {
   startup: {
@@ -9,8 +9,8 @@ export const MODE_CONFIG = {
     title: 'Startup Pitch',
     briefingTitle: 'Brief the investors',
     briefingDescription:
-      'Upload your pitch deck or presentation (PDF, DOCX, or PPTX). The panel will interrogate your traction, revenue model, and architecture.',
-    uploadHint: 'Upload your pitch deck or presentation',
+      'Upload your pitch deck as a PDF. The panel will interrogate your traction, revenue model, and architecture.',
+    uploadHint: 'Upload your pitch deck PDF',
     dropzoneSubtext: DROPZONE_SUBTEXT,
     fileError: FILE_ERROR,
     submitLabel: 'Deploy Panel',
@@ -34,8 +34,8 @@ export const MODE_CONFIG = {
     title: 'Academic Viva',
     briefingTitle: 'Prepare for your viva',
     briefingDescription:
-      'Upload your thesis or research paper (PDF, DOCX, or PPTX). Examiners will challenge methodology, claims, and conclusions.',
-    uploadHint: 'Upload your thesis or research document',
+      'Upload your thesis or research paper as a PDF. Examiners will challenge methodology, claims, and conclusions.',
+    uploadHint: 'Upload your thesis PDF',
     dropzoneSubtext: DROPZONE_SUBTEXT,
     fileError: FILE_ERROR,
     submitLabel: 'Initialize Panel',
@@ -59,8 +59,8 @@ export const MODE_CONFIG = {
     title: 'Technical Interview',
     briefingTitle: 'Brief the hiring panel',
     briefingDescription:
-      'Upload your CV (PDF, DOCX, or PPTX). The panel will probe resume claims and run spontaneous technical challenges.',
-    uploadHint: 'Upload your CV',
+      'Upload your CV as a PDF. The panel will probe resume claims and run spontaneous technical challenges.',
+    uploadHint: 'Upload your CV PDF',
     dropzoneSubtext: DROPZONE_SUBTEXT,
     fileError: FILE_ERROR,
     submitLabel: 'Start Interview',

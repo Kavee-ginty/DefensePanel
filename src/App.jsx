@@ -1,10 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from './context/AuthContext.jsx';
 import { getModeConfig } from './config/modeConfig.js';
 import {
   chartFromSessions,
-  createSession,
   fetchSessions,
 } from './lib/sessionsApi.js';
 import { buildInterimScores } from './lib/interimScoring.js';
@@ -12,6 +12,7 @@ import {
   modeToScenarioType,
   sessionToDebriefProps,
 } from './lib/sessionUtils.js';
+import { endSession as endSessionApi } from './lib/sessionApi.js';
 import AppShell from './components/AppShell.jsx';
 import AuthPage from './components/AuthPage.jsx';
 import ModeSelection from './components/ModeSelection.jsx';
@@ -46,6 +47,7 @@ export default function App() {
   const [view, setView] = useState('lobby');
   const [mode, setMode] = useState(null);
   const [file, setFile] = useState(null);
+  const [agentSession, setAgentSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
   const [scoreHistory, setScoreHistory] = useState([]);
   const [debriefFromHistory, setDebriefFromHistory] = useState(false);
@@ -113,11 +115,16 @@ export default function App() {
     setView('lobby');
     setMode(null);
     setFile(null);
+    setAgentSession(null);
     setActiveSession(null);
     setDebriefFromHistory(false);
     setDebriefSaving(false);
     setSessionError(null);
   };
+
+  const handleAgentReady = useCallback((next) => {
+    setAgentSession(next);
+  }, []);
 
   const navigateMarketing = (nextPage) => {
     setInSimulation(false);
@@ -182,15 +189,21 @@ export default function App() {
 
       setDebriefSaving(true);
       try {
-        const { session: saved } = await createSession(
+        const { session: saved, agent_deleted } = await endSessionApi(
           {
-            mode_id: modeId,
+            transcript_text: 'No transcript provided',
+            agent_id: agentSession?.agentId ?? null,
             scenario_type: scenarioType,
+            mode_id: modeId,
             duration_seconds: durationSeconds,
           },
           accessToken,
-          userId,
         );
+
+        if (!saved) {
+          throw new Error('end-session did not return a saved row');
+        }
+
         setActiveSession(saved);
         const nextCache = [
           saved,
@@ -199,14 +212,21 @@ export default function App() {
         setSessionsCache(nextCache);
         setScoreHistory(chartFromSessions(nextCache));
         setSessionsCacheFetchedAt(Date.now());
+        if (agent_deleted) {
+          setAgentSession(null);
+        }
       } catch (err) {
         console.error('[App] handleEndSession', err);
         setSessionError(err.message);
+        toast.error(
+          `Grading failed: ${err.message}. Showing local debrief only.`,
+          { duration: 5000 },
+        );
       } finally {
         setDebriefSaving(false);
       }
     },
-    [accessToken, userId, sessionsCache],
+    [accessToken, userId, sessionsCache, agentSession],
   );
 
   const handleDebriefReturn = () => {
@@ -255,7 +275,7 @@ export default function App() {
               file={file}
               onFileChange={setFile}
               onBack={goLobby}
-              isLoading={false}
+              onAgentReady={handleAgentReady}
               onInitialize={() => navigateSim('arena')}
             />
           );
@@ -264,6 +284,7 @@ export default function App() {
             <SimulationArena
               mode={mode}
               documentFile={file}
+              agentEmbedUrl={agentSession?.agentEmbedUrl ?? null}
               onEndSession={handleEndSession}
             />
           );
