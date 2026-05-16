@@ -1,6 +1,6 @@
 /**
  * Thin client for the agent-flow API endpoints:
- *   POST /api/process-document  (PDF → OpenAI prompts)
+ *   POST /api/process-document  (document → OpenAI prompts)
  *   POST /api/start-session     (create Bey agent → returns embed URL)
  *   POST /api/end-session       (grade transcript → insert pitch_sessions)
  *
@@ -18,14 +18,14 @@ async function readJson(res) {
 }
 
 /**
- * @param {File} file PDF file
+ * @param {File} file PDF, DOCX, or PPTX file
  * @returns {Promise<{ success: true, prompts: object, document_summary: string }>}
  */
 export async function processDocument(file) {
   try {
     if (!file) throw new Error('No file provided');
     const formData = new FormData();
-    formData.append('pdf', file);
+    formData.append('document', file);
 
     const res = await fetch('/api/process-document', {
       method: 'POST',

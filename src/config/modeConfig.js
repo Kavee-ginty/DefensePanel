@@ -1,7 +1,9 @@
-import { ALLOWED_ACCEPT } from './allowedAccept.js';
+import { PDF_ONLY_ACCEPT, PITCH_ACCEPT } from './allowedAccept.js';
 
-const FILE_ERROR = 'Please upload a PDF file.';
-const DROPZONE_SUBTEXT = 'PDF only (v1)';
+const PDF_FILE_ERROR = 'Please upload a PDF file.';
+const MULTI_FILE_ERROR = 'Please upload a PDF, DOCX, or PPTX file.';
+const PDF_DROPZONE = 'PDF only';
+const PITCH_DROPZONE = 'PDF, DOCX, or PPTX';
 
 export const MODE_CONFIG = {
   startup: {
@@ -9,13 +11,13 @@ export const MODE_CONFIG = {
     title: 'Startup Pitch',
     briefingTitle: 'Brief the investors',
     briefingDescription:
-      'Upload your pitch deck as a PDF. The panel will interrogate your traction, revenue model, and architecture.',
-    uploadHint: 'Upload your pitch deck PDF',
-    dropzoneSubtext: DROPZONE_SUBTEXT,
-    fileError: FILE_ERROR,
+      'Upload your pitch deck as a PDF, Word document, or PowerPoint. The panel will interrogate your traction, revenue model, and architecture.',
+    uploadHint: 'Upload your pitch deck',
+    dropzoneSubtext: PITCH_DROPZONE,
+    fileError: MULTI_FILE_ERROR,
     submitLabel: 'Deploy Panel',
     arenaSubtitle: 'VC Pitch Defense',
-    accept: ALLOWED_ACCEPT,
+    accept: PITCH_ACCEPT,
     panelists: [
       {
         id: 'core',
@@ -36,11 +38,11 @@ export const MODE_CONFIG = {
     briefingDescription:
       'Upload your thesis or research paper as a PDF. Examiners will challenge methodology, claims, and conclusions.',
     uploadHint: 'Upload your thesis PDF',
-    dropzoneSubtext: DROPZONE_SUBTEXT,
-    fileError: FILE_ERROR,
+    dropzoneSubtext: PDF_DROPZONE,
+    fileError: PDF_FILE_ERROR,
     submitLabel: 'Initialize Panel',
     arenaSubtitle: 'Academic Viva',
-    accept: ALLOWED_ACCEPT,
+    accept: PDF_ONLY_ACCEPT,
     panelists: [
       {
         id: 'examiner',
@@ -61,11 +63,11 @@ export const MODE_CONFIG = {
     briefingDescription:
       'Upload your CV as a PDF. The panel will probe resume claims and run spontaneous technical challenges.',
     uploadHint: 'Upload your CV PDF',
-    dropzoneSubtext: DROPZONE_SUBTEXT,
-    fileError: FILE_ERROR,
+    dropzoneSubtext: PDF_DROPZONE,
+    fileError: PDF_FILE_ERROR,
     submitLabel: 'Start Interview',
     arenaSubtitle: 'Technical Interview',
-    accept: ALLOWED_ACCEPT,
+    accept: PDF_ONLY_ACCEPT,
     panelists: [
       {
         id: 'hm',

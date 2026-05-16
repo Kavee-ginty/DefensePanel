@@ -27,14 +27,14 @@ export default function TopNav({
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
         <button
           type="button"
           onClick={() => onNavigate?.('home')}
-          className="flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-50 transition-colors hover:text-white"
+          className="flex items-center gap-2 text-lg font-bold tracking-tight text-zinc-50 transition-colors hover:text-white sm:text-xl"
         >
-          <Shield className="h-4 w-4 text-blue-500" aria-hidden />
-          The Defense Panel
+          <Shield className="h-5 w-5 text-blue-500" aria-hidden />
+          Defense Panel
         </button>
 
         <nav className="flex flex-1 flex-wrap items-center gap-1 sm:gap-2" aria-label="Main">
@@ -44,9 +44,9 @@ export default function TopNav({
               type="button"
               onClick={() => onNavigate?.(link.id)}
               className={[
-                'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors sm:text-sm',
+                'rounded-lg px-3.5 py-2 text-sm font-medium transition-colors sm:text-base',
                 activePage === link.id && !inSimulation
-                  ? 'bg-zinc-800 text-white'
+                  ? 'bg-zinc-800/90 text-white ring-1 ring-zinc-700'
                   : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100',
               ].join(' ')}
             >
@@ -65,7 +65,7 @@ export default function TopNav({
             <button
               type="button"
               onClick={onSignOut}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-800/80 px-3 py-2 text-xs font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
             >
               <LogOut className="h-3.5 w-3.5" aria-hidden />
               Sign out

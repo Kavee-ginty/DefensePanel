@@ -110,7 +110,7 @@ export default function ModeSelection({
           {FEATURES.map(({ icon: Icon, title, text }) => (
             <div
               key={title}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 backdrop-blur-sm"
+              className="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-5 backdrop-blur-sm"
             >
               <Icon className="mb-3 h-6 w-6 text-cyan-400" aria-hidden />
               <h2 className="text-sm font-semibold text-zinc-100">{title}</h2>
@@ -119,7 +119,7 @@ export default function ModeSelection({
           ))}
         </section>
 
-        <section className="mb-16 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6 sm:p-8">
+        <section className="mb-16 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-6 sm:p-8">
           <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-zinc-500">
             How it works
           </h2>
@@ -160,7 +160,7 @@ export default function ModeSelection({
                   onClick={() => onSelect?.(mode.id)}
                   aria-pressed={isSelected}
                   className={[
-                    'group relative rounded-xl border bg-zinc-900/40 p-6 text-left backdrop-blur-md transition-all duration-200',
+                    'group relative rounded-xl border bg-zinc-900/50 p-6 text-left backdrop-blur-md transition-all duration-200',
                     'hover:border-zinc-500 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
                     isSelected
                       ? 'border-blue-500 ring-1 ring-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.25)]'

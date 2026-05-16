@@ -12,7 +12,7 @@ export default function AppShell({
   showDevNav = false,
   contentClassName = '',
 }) {
-  const navOffset = showDevNav ? 'pt-[7.25rem]' : 'pt-16';
+  const navOffset = showDevNav ? 'pt-[8rem]' : 'pt-[4.75rem]';
 
   return (
     <div className="min-h-screen bg-zinc-950">

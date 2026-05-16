@@ -183,6 +183,7 @@ export default function App() {
       setScoreHistory(chartFromSessions(projected));
       setDebriefFromHistory(false);
       setSessionError(null);
+      setFile(null);
       goDebrief();
 
       if (!accessToken || !userId) return;
@@ -230,17 +231,22 @@ export default function App() {
   );
 
   const handleDebriefReturn = () => {
-    if (debriefFromHistory) {
-      setActiveSession(null);
-      setDebriefFromHistory(false);
-      setDebriefSaving(false);
-      setInSimulation(false);
-      setPage('history');
-      setView('lobby');
-      return;
-    }
     goLobby();
   };
+
+  const handleDebriefGoHistory = useCallback(() => {
+    setActiveSession(null);
+    setDebriefFromHistory(false);
+    setDebriefSaving(false);
+    setSessionError(null);
+    setFile(null);
+    setInSimulation(false);
+    setPage('history');
+    setView('lobby');
+    if (accessToken) {
+      void loadSessions(false);
+    }
+  }, [accessToken, loadSessions]);
 
   const debriefProps = sessionToDebriefProps(activeSession);
 
@@ -312,10 +318,8 @@ export default function App() {
                       ? [{ label: 'S1', score: activeSession.overall_score }]
                       : []
                 }
-                returnLabel={
-                  debriefFromHistory ? 'Back to History' : 'Return to Lobby'
-                }
                 onReturn={handleDebriefReturn}
+                onGoHistory={handleDebriefGoHistory}
               />
             </>
           );
