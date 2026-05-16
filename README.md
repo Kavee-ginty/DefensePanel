@@ -102,6 +102,15 @@ Member 4 owns the non-core-code demo assets:
 - `ProjectOverview.md`: final submission overview.
 - `PitchScript.md`: final demo and speaking script.
 
+## Team synchronization (Member 4 PM)
+
+- [`.env.example`](.env.example): safe variable names for local setup (no secrets).
+- [`docs/Member2_VercelEnv.md`](docs/Member2_VercelEnv.md): handoff checklist for Vercel secrets (Member 2).
+- [`docs/PMAvatarHandoff.md`](docs/PMAvatarHandoff.md): paste avatar UUIDs for deterministic demos.
+- [`docs/M1M3_StartSessionIntegration.md`](docs/M1M3_StartSessionIntegration.md): wire arena to `/api/start-session`.
+- [`docs/PMIntegrationTest.md`](docs/PMIntegrationTest.md): curl + live interruption script.
+- [`docs/DemoVideoFallbackRecording.md`](docs/DemoVideoFallbackRecording.md): 2-minute backup video shot list.
+
 ## Environment Variables
 
 Frontend:
