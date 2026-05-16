@@ -21,6 +21,8 @@ import { startCall } from '../lib/sessionApi.js';
 const BeyAgentCall = forwardRef(function BeyAgentCall(
   {
     agentId,
+    fallbackEmbedUrl = null,
+    onFallbackToEmbed = null,
     label = null,
     started = false,
     muted = false,
@@ -174,6 +176,14 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
         await room.localParticipant.setMicrophoneEnabled(!muted);
       } catch (err) {
         console.error('[BeyAgentCall]', err);
+        const wantsIframe =
+          Boolean(err?.requiresGrowthPlan) &&
+          typeof fallbackEmbedUrl === 'string' &&
+          fallbackEmbedUrl.trim() !== '';
+        if (!cancelled && wantsIframe) {
+          onFallbackToEmbed?.();
+          return;
+        }
         if (!cancelled) {
           setError(err?.message || 'Could not connect');
         }
@@ -201,7 +211,7 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
         localAudioTrackRef.current = null;
       }
     };
-  }, [started, agentId]);
+  }, [started, agentId, fallbackEmbedUrl, onFallbackToEmbed]);
 
   useEffect(() => {
     const room = roomRef.current;

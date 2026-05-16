@@ -126,13 +126,23 @@ export async function startCall(agentId, tags) {
     });
     const data = await readJson(res);
     if (!res.ok || !data?.success) {
+      const requiresGrowthPlan = data?.requires_growth_plan === true;
       const msg = data?.error || `Start call failed (${res.status})`;
-      throw new Error(msg);
+      const err = new Error(msg);
+      /** @type {Error & { requiresGrowthPlan?: boolean; status?: number }} */
+      const enriched = err;
+      enriched.requiresGrowthPlan = requiresGrowthPlan;
+      enriched.status = res.status;
+      throw enriched;
     }
     return data;
   } catch (err) {
     console.error('[sessionApi] startCall failed', err);
-    toast.error(err.message || 'Could not start call');
+    const enriched =
+      /** @type {Error & { requiresGrowthPlan?: boolean }} */ (err);
+    if (!enriched.requiresGrowthPlan) {
+      toast.error(enriched.message || 'Could not start call');
+    }
     throw err;
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquare, Play } from 'lucide-react';
 import { getModeConfig } from '../config/modeConfig.js';
 import { getBeyEmbedUrl } from '../config/beyEmbeds.js';
@@ -33,6 +33,7 @@ export default function SimulationArena({
   const sessionStartedAt = useRef(Date.now());
   const beyAgentRef = useRef(null);
   const [started, setStarted] = useState(false);
+  const [liveKitUnavailable, setLiveKitUnavailable] = useState(false);
   const [muted, setMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
@@ -40,15 +41,20 @@ export default function SimulationArena({
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState(null);
 
-  // Slot 0 uses the freshly-generated agent: LiveKit (headless) when we have
-  // agentId; otherwise iframe embed if only URL is available. Remaining slots
-  // use static config URLs.
+  useEffect(() => {
+    setLiveKitUnavailable(false);
+  }, [agentId, agentEmbedUrl]);
+
+  // Slot 0: try LiveKit when we have agentId; on Growth-plan 403 fall back to bey.chat iframe.
   const panels = useMemo(
     () =>
       config.panelists.map((p, index) => {
-        const useHeadlessLiveKit = index === 0 && Boolean(agentId);
+        const useHeadlessLiveKit =
+          index === 0 && Boolean(agentId) && !liveKitUnavailable;
         const useAgentIframe =
-          index === 0 && Boolean(agentEmbedUrl) && !useHeadlessLiveKit;
+          index === 0 &&
+          Boolean(agentEmbedUrl) &&
+          (liveKitUnavailable || !agentId);
 
         let embedUrl = p.beyChatUrl ?? getBeyEmbedUrl(index);
         if (useAgentIframe) embedUrl = agentEmbedUrl;
@@ -62,7 +68,7 @@ export default function SimulationArena({
           useHeadlessLiveKit,
         };
       }),
-    [config.panelists, agentId, agentEmbedUrl],
+    [config.panelists, agentId, agentEmbedUrl, liveKitUnavailable],
   );
 
   const handleEndConfirm = () => {
@@ -154,6 +160,8 @@ export default function SimulationArena({
               ref={beyAgentRef}
               key="bey-livekit-slot"
               agentId={agentId}
+              fallbackEmbedUrl={agentEmbedUrl}
+              onFallbackToEmbed={() => setLiveKitUnavailable(true)}
               started={started}
               muted={muted}
               label={panel.label}
@@ -171,7 +179,7 @@ export default function SimulationArena({
         )}
       </div>
 
-      {started && agentId && (
+      {started && agentId && !liveKitUnavailable && (
         <form
           onSubmit={handleSendChat}
           className="shrink-0 rounded-xl border border-white/10 bg-zinc-950/80 p-2.5 shadow-lg backdrop-blur-sm"

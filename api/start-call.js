@@ -106,20 +106,40 @@ export default async function handler(req, res) {
       console.error('[start-call] Beyond Presence failed', response.status, extra)
       const errPayload =
         payload && typeof payload === 'object'
-          ? /** @type {{ error?: { message?: string } }; message?: string }} */ (
+          ? /** @type {{ error?: { message?: string } }; message?: string; detail?: unknown }} */ (
               payload
             )
           : null
+
+      const detailStr =
+        typeof errPayload?.detail === 'string'
+          ? errPayload.detail
+          : ''
+
       const messageFromApi =
         (typeof errPayload?.error?.message === 'string' &&
           errPayload.error.message) ||
         (typeof errPayload?.message === 'string' && errPayload.message) ||
         null
 
+      const combinedMessage =
+        messageFromApi ||
+        (detailStr?.trim() ? detailStr : null) ||
+        null
+
+      const growthPlanHint =
+        /Growth\s+Plan|programmatic\s+call\s+creation/i.test(
+          `${combinedMessage ?? ''} ${extra}`,
+        )
+      const requiresGrowthPlan =
+        response.status === 403 && growthPlanHint
+
       return res.status(response.status >= 400 ? response.status : 500).json({
         success: false,
         error:
-          messageFromApi || `Beyond Presence call failed (${response.status})`,
+          combinedMessage ||
+          `Beyond Presence call failed (${response.status})`,
+        ...(requiresGrowthPlan ? { requires_growth_plan: true } : {}),
       })
     }
 
