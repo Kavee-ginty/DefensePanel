@@ -352,6 +352,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' })
   }
 
+  /** @type {string | null | undefined} */
+  let agentIdToCleanup = null
+  /** @type {string | null | undefined} */
+  let agentIdToCleanup2 = null
+  let cleanupDone = false
+
   try {
     const auth = await getUserFromRequest(req)
     if (auth.error) {
@@ -375,6 +381,9 @@ export default async function handler(req, res) {
       mode_id,
       duration_seconds,
     } = body
+
+    agentIdToCleanup = agent_id
+    agentIdToCleanup2 = agent_id_2
 
     const scenarioType = normalizeScenarioType(scenario_type, mode_id)
     const duration = Math.max(1, Math.round(Number(duration_seconds) || 0))
@@ -494,14 +503,13 @@ ${mergedTranscriptText}`,
 
     if (error || !session) {
       console.error('[end-session] Supabase insert failed', error)
-      await deleteAgentAwait(agent_id)
-      await deleteAgentAwait(agent_id_2)
       throw new Error(error?.message || 'Could not save session')
     }
 
     const { deleted, status } = await deleteAgentAwait(agent_id)
     const { deleted: deleted2, status: status2 } =
       await deleteAgentAwait(agent_id_2)
+    cleanupDone = true
 
     return res.status(200).json({
       success: true,
@@ -524,5 +532,18 @@ ${mergedTranscriptText}`,
       success: false,
       error: err?.message || 'Could not end session',
     })
+  } finally {
+    if (!cleanupDone) {
+      try {
+        await deleteAgentAwait(agentIdToCleanup)
+      } catch (cleanupErr) {
+        console.error('[end-session] finally cleanup agent_id', cleanupErr)
+      }
+      try {
+        await deleteAgentAwait(agentIdToCleanup2)
+      } catch (cleanupErr) {
+        console.error('[end-session] finally cleanup agent_id_2', cleanupErr)
+      }
+    }
   }
 }

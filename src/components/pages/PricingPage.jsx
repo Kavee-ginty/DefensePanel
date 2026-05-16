@@ -4,8 +4,8 @@ import toast from 'react-hot-toast';
 import MarketingLayout from '../MarketingLayout.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-const DODO_API_URL =
-  import.meta.env.VITE_DODO_API_URL || 'http://localhost:8080';
+const DODO_API_BASE = import.meta.env.VITE_DODO_API_URL || '';
+const CHECKOUT_URL = `${DODO_API_BASE}/api/create-checkout`;
 
 const TIERS = [
   {
@@ -67,7 +67,7 @@ export default function PricingPage({ onStartSimulation }) {
 
     setCheckoutLoading(true);
     try {
-      const res = await fetch(`${DODO_API_URL}/api/create-checkout`, {
+      const res = await fetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userEmail: email }),

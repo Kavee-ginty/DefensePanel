@@ -65,6 +65,9 @@ Required for all environments (Production / Preview / Development):
 | `OPENAI_API_KEY` | `/api/process-document`, `/api/end-session` |
 | `BEYOND_PRESENCE_API_KEY` | `/api/start-session`, `/api/start-call`, `/api/end-session` |
 | `BEY_AVATAR_ID` | `/api/start-session` (Beyond Presence avatar persona) |
+| `DODO_PAYMENTS_API_KEY` | `/api/create-checkout` (Dodo Payments secret key) |
+| `DODO_API_URL` | `/api/create-checkout` (e.g. `https://test.dodopayments.com` or `https://live.dodopayments.com`) |
+| `PRODUCT_ID` | `/api/create-checkout` (default Dodo product) |
 
 Optional:
 
@@ -73,6 +76,8 @@ Optional:
 | `BEY_CHAT_EMBED_ORIGIN` | `https://bey.chat` | Override the iframe-fallback embed origin |
 | `BEY_AVATAR_ID2` | unset | Second Beyond avatar: silent panelist agent + LiveKit slot 2 in the arena |
 | `VITE_USE_API_SESSIONS` | unset | Force the frontend to use `/api/sessions` instead of direct Supabase reads. Production already uses `/api/*` automatically. |
+| `FRONTEND_URL` | request origin | Fallback `return_url` host for `/api/create-checkout` after payment |
+| `VITE_DODO_API_URL` | unset | Point Pricing checkout at the standalone `dodo/` Express gateway instead of `/api/create-checkout` |
 
 Never expose `OPENAI_API_KEY`, `BEYOND_PRESENCE_API_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` to the frontend — only the `VITE_`-prefixed pair is bundled into the client.
 

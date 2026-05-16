@@ -43,6 +43,26 @@ const DEFAULT_BRIEFING_SETUP = {
 
 const CACHE_TTL_MS = 30_000;
 
+const ROUTABLE_PAGES = [
+  'home',
+  'about',
+  'contact',
+  'pricing',
+  'dashboard',
+  'history',
+];
+
+function pathToPage(pathname) {
+  if (typeof pathname !== 'string') return 'home';
+  const slug = pathname.replace(/^\/+/, '').split(/[/?#]/)[0].toLowerCase();
+  if (!slug) return 'home';
+  return ROUTABLE_PAGES.includes(slug) ? slug : 'home';
+}
+
+function pageToPath(page) {
+  return page && page !== 'home' ? `/${page}` : '/';
+}
+
 function RouteFallback() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center text-zinc-400">
@@ -54,7 +74,11 @@ function RouteFallback() {
 
 export default function App() {
   const { session, user, loading, signOut } = useAuth();
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState(() =>
+    typeof window !== 'undefined'
+      ? pathToPage(window.location.pathname)
+      : 'home',
+  );
   const [inSimulation, setInSimulation] = useState(false);
   const [view, setView] = useState('lobby');
   const [mode, setMode] = useState(null);
@@ -139,6 +163,16 @@ export default function App() {
   }, [session, inSimulation]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onPop = () => {
+      setInSimulation(false);
+      setPage(pathToPage(window.location.pathname));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  useEffect(() => {
     if (view === 'briefing' && !mode) setView('lobby');
     if (view === 'arena' && (!mode || !file)) {
       setView(mode ? 'briefing' : 'lobby');
@@ -174,6 +208,12 @@ export default function App() {
     setPage(nextPage);
     if (nextPage !== 'history') {
       setDebriefFromHistory(false);
+    }
+    if (typeof window !== 'undefined') {
+      const nextPath = pageToPath(nextPage);
+      if (window.location.pathname !== nextPath) {
+        window.history.pushState({}, '', nextPath);
+      }
     }
   };
 
@@ -290,6 +330,9 @@ export default function App() {
     setInSimulation(false);
     setPage('history');
     setView('lobby');
+    if (typeof window !== 'undefined' && window.location.pathname !== '/history') {
+      window.history.pushState({}, '', '/history');
+    }
     if (accessToken) {
       void loadSessions(false);
     }

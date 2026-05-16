@@ -32,3 +32,6 @@ supabase
 # Cursor / agent metadata
 .cursor
 .cursorrules
+
+# Standalone dev-only Dodo Express gateway (replaced by /api/create-checkout)
+dodo
