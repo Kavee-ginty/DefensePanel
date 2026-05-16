@@ -26,7 +26,7 @@ npm run dev
 1. **Auth** — Login (email/password) or Register (username, email, password)
 2. **Lobby** — Select Startup Pitch, Academic Viva, or Technical Interview
 3. **Briefing** — Upload mode-specific PDF (deck, thesis, or CV)
-4. **Arena** — Startup Pitch: PDF slides + presenter PIP + panelists; other modes: full webcam + panelists
+4. **Arena** — Startup Pitch: PDF/DOCX/PPTX in main panel + presenter PIP + panelists; other modes: full webcam + panelists
 5. **Debrief** — Performance analytics (mock data until API is wired)
 
 ## Build

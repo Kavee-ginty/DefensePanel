@@ -95,7 +95,7 @@ Deploy the `dist` folder via Vercel (or any static host). Configure the producti
 1. **Auth** — Register or log in with email/password.
 2. **Lobby** — Choose Startup Pitch, Academic Viva, or Technical Interview.
 3. **Briefing** — Upload PDF, DOCX, or PPTX (see arena note below).
-4. **Arena** — Camera/mic permission required. Startup Pitch shows PDF slides in the main panel; other modes show full webcam only.
+4. **Arena** — Camera/mic permission required. Startup Pitch displays PDF, Word, or PowerPoint in the main presentation panel; other modes show full webcam only.
 5. **Debrief** — End session to save (requires Supabase) and view scores.
 6. **History** — Lists past sessions (direct Supabase in dev by default).
 
@@ -107,7 +107,7 @@ Deploy the `dist` folder via Vercel (or any static host). Configure the producti
 | `Invalid path` / Supabase URL errors | `VITE_SUPABASE_URL` must be the project root URL only, not the REST path. |
 | History fails with only `npm run dev` | Expected if `VITE_USE_API_SESSIONS=true` without `vercel dev`. Remove that flag or run `npm run dev:api`. |
 | `ECONNREFUSED` on `/api` | Start `vercel dev` or use direct Supabase (default in dev). |
-| PDF does not show in pitch arena | Upload a **`.pdf`** file. DOCX/PPTX are for AI context only, not slide view. |
+| Presentation does not show in pitch arena | Use PDF, DOCX, or PPTX. PDF embeds directly; Word renders as scrollable HTML; PowerPoint uses an in-app slide carousel. |
 | Browser downloads PDF instead of showing it | Use Chrome/Edge; ensure file is PDF. Report if issue persists after latest build. |
 | Camera/mic blocked | Allow permissions in browser site settings for `localhost`. |
 | No sessions in History | Complete a simulation, end session while signed in, and confirm SQL + RLS policies ran. |
@@ -116,6 +116,8 @@ Deploy the `dist` folder via Vercel (or any static host). Configure the producti
 
 | Type | Briefing | Pitch arena display |
 |------|----------|---------------------|
-| PDF | Yes | Slides in main presentation panel |
-| DOCX | Yes | Context only (message in arena) |
-| PPTX | Yes | Context only (message in arena) |
+| PDF | Yes | Native PDF embed in main panel |
+| DOCX | Yes | Visual Word layout via `docx-preview` |
+| PPTX | Yes | Visual slides via `pptx-preview` |
+
+Preview fidelity depends on file complexity; layout and images are preserved better than text-only extraction, but may not match Microsoft Office exactly.

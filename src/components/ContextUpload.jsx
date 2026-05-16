@@ -143,7 +143,7 @@ export default function ContextUpload({
 
           {file && (
             <div
-              className="mt-4 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3"
+              className="mt-4 flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-4 py-3"
               role="status"
             >
               <FileText
@@ -200,7 +200,7 @@ export default function ContextUpload({
             type="button"
             disabled={isLoading || !file || isExtracting}
             onClick={() => onInitialize?.()}
-            className="mt-8 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all duration-150 hover:scale-[1.02] hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
+            className="mt-8 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
           >
             {isLoading ? 'Processing…' : resolvedSubmit}
           </button>

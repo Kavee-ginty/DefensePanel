@@ -63,7 +63,7 @@ function textFromSlideXml(xml) {
   return parts.join(' ').trim();
 }
 
-async function extractPptxText(file) {
+export async function extractPptxSlides(file) {
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
   const slidePaths = Object.keys(zip.files)
     .filter((path) => /^ppt\/slides\/slide\d+\.xml$/i.test(path))
@@ -79,11 +79,26 @@ async function extractPptxText(file) {
   const slides = await Promise.all(
     slidePaths.map(async (path) => {
       const xml = await zip.file(path).async('text');
-      return textFromSlideXml(xml);
+      const text = textFromSlideXml(xml);
+      const index = Number(path.match(/slide(\d+)\.xml/i)?.[1] ?? 0);
+      return {
+        index,
+        title: `Slide ${index}`,
+        text,
+      };
     }),
   );
 
-  return slides.filter(Boolean).join('\n\n').trim();
+  return slides.filter((s) => s.text);
+}
+
+async function extractPptxText(file) {
+  const slides = await extractPptxSlides(file);
+  return slides
+    .map((s) => s.text)
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
 }
 
 export async function extractDocumentText(file) {
