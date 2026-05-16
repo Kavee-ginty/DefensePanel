@@ -34,7 +34,7 @@ const FEATURES = [
   {
     icon: Mic,
     title: 'Live AI panelists',
-    text: 'Beyond Presence avatars interrupt and probe weak claims in real time.',
+    text: 'Beyond Presence avatars ask challenging questions and simulate the interview with real pressure.',
   },
   {
     icon: Upload,
@@ -44,7 +44,7 @@ const FEATURES = [
   {
     icon: Zap,
     title: 'Instant debrief',
-    text: 'Scores, filler words, and critical feedback after every session.',
+    text: 'Scores, filler words, and critical feedback after every session allowing you to track your progress.',
   },
 ];
 
@@ -73,7 +73,7 @@ export default function ModeSelection({
         <section className="mb-16 text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-base font-medium text-blue-300">
             <Sparkles className="h-4 w-4" aria-hidden />
-            AI-powered defense rehearsal
+            AI-powered interview rehearsal
           </p>
           <h1 className="mt-6 text-[2.375rem] font-bold leading-tight tracking-tight sm:text-[3rem]">
             Train under pressure.
@@ -82,12 +82,12 @@ export default function ModeSelection({
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-lg leading-relaxed text-zinc-400">
             The Defense Panel puts you in a high-stakes interrogation room with
-            AI investors, examiners, and hiring managers — before the real panel
+            AI panelists investors, examiners, and hiring managers — before the real panel
             ever sees your slides.
           </p>
           <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-zinc-500">
             Pick a simulation, upload context, and rehearse live: the panel reads
-            your document, probes weak spots, and leaves you with scores and feedback
+            your document, simulate the interview with real pressure, and leaves you with scores and constructive feedback
             you can act on before the real meeting.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -146,8 +146,7 @@ export default function ModeSelection({
             </h2>
             <p className="mx-auto mt-3 max-w-3xl text-lg text-zinc-400">
               Select a mode, upload your document, then enter the live arena with
-              AI panelists. Each mode tunes tone and questioning style — startup pitch,
-              academic viva, or technical interview.
+              AI panelists.
             </p>
           </header>
 
