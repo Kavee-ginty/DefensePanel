@@ -1,33 +1,41 @@
-import { useCallback, useId, useState } from 'react';
-import { Check, FileText, Upload } from 'lucide-react';
+import { useCallback, useId, useMemo, useState } from 'react';
+import { ArrowLeft, Check, FileText, Upload } from 'lucide-react';
+import { getModeConfig } from '../config/modeConfig.js';
 
 export default function ContextUpload({
+  mode = 'startup',
   file = null,
   onFileChange,
   onInitialize,
+  onBack,
   isLoading = false,
   error = null,
-  title = 'Initialize Defense Protocol',
-  description = 'Upload your thesis, pitch deck, or resume. The panel will review it in real-time.',
-  submitLabel = 'Initialize Panel',
+  title,
+  description,
+  submitLabel,
 }) {
+  const config = useMemo(() => getModeConfig(mode), [mode]);
   const inputId = useId();
   const [isDragging, setIsDragging] = useState(false);
   const [localError, setLocalError] = useState(null);
+
+  const resolvedTitle = title ?? config.briefingTitle;
+  const resolvedDescription = description ?? config.briefingDescription;
+  const resolvedSubmit = submitLabel ?? config.submitLabel;
 
   const handleFiles = useCallback(
     (files) => {
       const next = files?.[0];
       if (!next) return;
       if (next.type !== 'application/pdf') {
-        setLocalError('Please upload a PDF file.');
+        setLocalError(config.pdfError);
         onFileChange?.(null);
         return;
       }
       setLocalError(null);
       onFileChange?.(next);
     },
-    [onFileChange],
+    [onFileChange, config.pdfError],
   );
 
   const onDrop = (e) => {
@@ -39,12 +47,26 @@ export default function ContextUpload({
   return (
     <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50">
       <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-16">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-4 flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Back to lobby
+          </button>
+        )}
+
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 shadow-xl backdrop-blur-md">
+          <p className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-blue-400/90">
+            {config.title} · Briefing
+          </p>
           <h1 className="text-center text-2xl font-bold tracking-tight">
-            {title}
+            {resolvedTitle}
           </h1>
           <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-zinc-400">
-            {description}
+            {resolvedDescription}
           </p>
 
           <label
@@ -53,9 +75,7 @@ export default function ContextUpload({
               e.preventDefault();
               setIsDragging(true);
             }}
-            onDragOver={(e) => {
-              e.preventDefault();
-            }}
+            onDragOver={(e) => e.preventDefault()}
             onDragLeave={(e) => {
               e.preventDefault();
               if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -74,7 +94,7 @@ export default function ContextUpload({
             <input
               id={inputId}
               type="file"
-              accept="application/pdf,.pdf"
+              accept={config.accept}
               className="sr-only"
               onChange={(e) => handleFiles(e.target.files)}
             />
@@ -84,9 +104,11 @@ export default function ContextUpload({
               aria-hidden
             />
             <span className="mt-3 text-sm font-medium text-zinc-200">
-              Drop PDF here or click to browse
+              {config.uploadHint}
             </span>
-            <span className="mt-1 text-xs text-zinc-500">PDF only</span>
+            <span className="mt-1 text-xs text-zinc-500">
+              {config.dropzoneSubtext}
+            </span>
           </label>
 
           {file && (
@@ -125,10 +147,11 @@ export default function ContextUpload({
             onClick={() => onInitialize?.()}
             className="mt-8 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all duration-150 hover:scale-[1.02] hover:bg-blue-500 disabled:pointer-events-none disabled:opacity-40"
           >
-            {isLoading ? 'Processing…' : submitLabel}
+            {isLoading ? 'Processing…' : resolvedSubmit}
           </button>
         </div>
       </div>
     </div>
   );
 }
+

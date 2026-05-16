@@ -41,6 +41,7 @@ function buildAreaPath(linePath, width, height, pad) {
 
 export default function DebriefDashboard({
   headerTitle = 'Defense Terminated',
+  scenario = null,
   endedAt = new Date('2023-10-26T14:30:00'),
   subtitleTime = '',
   overallScore = 82,
@@ -83,6 +84,11 @@ export default function DebriefDashboard({
       <div className="mx-auto max-w-4xl space-y-8">
         <header className="text-center">
           <h1 className="text-3xl font-bold tracking-tight">{headerTitle}</h1>
+          {scenario && (
+            <p className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+              {scenario}
+            </p>
+          )}
           {subtitle && (
             <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
           )}
@@ -290,3 +296,4 @@ export default function DebriefDashboard({
 }
 
 export { DEFAULT_HISTORY };
+
