@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from './context/AuthContext.jsx';
 import { getModeConfig } from './config/modeConfig.js';
+import AppShell from './components/AppShell.jsx';
 import AuthPage from './components/AuthPage.jsx';
 import ModeSelection from './components/ModeSelection.jsx';
 import ContextUpload from './components/ContextUpload.jsx';
 import SimulationArena from './components/SimulationArena.jsx';
 import DebriefDashboard from './components/DebriefDashboard.jsx';
-
-const VIEWS = [
-  { id: 'lobby', label: 'Lobby' },
-  { id: 'briefing', label: 'Briefing' },
-  { id: 'arena', label: 'Arena' },
-  { id: 'debrief', label: 'Debrief' },
-];
+import AboutPage from './components/pages/AboutPage.jsx';
+import ContactPage from './components/pages/ContactPage.jsx';
+import PricingPage from './components/pages/PricingPage.jsx';
+import HistoryPage from './components/pages/HistoryPage.jsx';
 
 export default function App() {
   const { session, user, loading, signOut } = useAuth();
+  const [page, setPage] = useState('home');
+  const [inSimulation, setInSimulation] = useState(false);
   const [view, setView] = useState('lobby');
   const [mode, setMode] = useState(null);
   const [file, setFile] = useState(null);
@@ -26,13 +26,14 @@ export default function App() {
     user?.email?.split('@')[0] ||
     null;
 
+  const showDevNav = import.meta.env.DEV;
+
   useEffect(() => {
-    if (!session && view !== 'lobby') {
-      setView('lobby');
-      setMode(null);
-      setFile(null);
+    if (!session && inSimulation) {
+      setInSimulation(false);
+      setPage('home');
     }
-  }, [session, view]);
+  }, [session, inSimulation]);
 
   useEffect(() => {
     if (view === 'briefing' && !mode) setView('lobby');
@@ -47,9 +48,21 @@ export default function App() {
     setFile(null);
   };
 
-  const navigate = (next) => {
+  const navigateMarketing = (nextPage) => {
+    setInSimulation(false);
+    setPage(nextPage);
+  };
+
+  const startSimulation = () => {
+    setInSimulation(true);
+    setPage('home');
+    setView(mode ? 'briefing' : 'lobby');
+  };
+
+  const navigateSim = (next) => {
     if (next === 'briefing' && !mode) return;
     if (next === 'arena' && (!mode || !file)) return;
+    setInSimulation(true);
     setView(next);
   };
 
@@ -67,75 +80,95 @@ export default function App() {
   }
 
   const body = (() => {
-    switch (view) {
-      case 'lobby':
+    if (inSimulation) {
+      switch (view) {
+        case 'lobby':
+          return (
+            <ModeSelection
+              selectedId={mode}
+              onSelect={setMode}
+              onContinue={() => navigateSim('briefing')}
+            />
+          );
+        case 'briefing':
+          return (
+            <ContextUpload
+              mode={mode}
+              file={file}
+              onFileChange={setFile}
+              onBack={goLobby}
+              isLoading={false}
+              onInitialize={() => navigateSim('arena')}
+            />
+          );
+        case 'arena':
+          return (
+            <SimulationArena
+              mode={mode}
+              documentFile={file}
+              onEndSession={() => navigateSim('debrief')}
+            />
+          );
+        case 'debrief':
+          return (
+            <DebriefDashboard
+              scenario={mode ? getModeConfig(mode).title : undefined}
+              onReturn={goLobby}
+            />
+          );
+        default:
+          return null;
+      }
+    }
+
+    switch (page) {
+      case 'home':
         return (
           <ModeSelection
             selectedId={mode}
             onSelect={setMode}
-            onContinue={() => navigate('briefing')}
-            onSignOut={signOut}
-            userLabel={userLabel}
+            onContinue={() => {
+              setInSimulation(true);
+              navigateSim('briefing');
+            }}
           />
         );
-      case 'briefing':
-        return (
-          <ContextUpload
-            mode={mode}
-            file={file}
-            onFileChange={setFile}
-            onBack={goLobby}
-            isLoading={false}
-            onInitialize={() => navigate('arena')}
-          />
-        );
-      case 'arena':
-        return (
-          <SimulationArena
-            mode={mode}
-            documentFile={file}
-            livekitPanels={[]}
-            onEndSession={() => navigate('debrief')}
-          />
-        );
-      case 'debrief':
-        return (
-          <DebriefDashboard
-            scenario={mode ? getModeConfig(mode).title : undefined}
-            onReturn={goLobby}
-          />
-        );
+      case 'about':
+        return <AboutPage />;
+      case 'contact':
+        return <ContactPage />;
+      case 'pricing':
+        return <PricingPage onStartSimulation={startSimulation} />;
+      case 'history':
+        return <HistoryPage />;
       default:
-        return null;
+        return (
+          <ModeSelection
+            selectedId={mode}
+            onSelect={setMode}
+            onContinue={() => {
+              setInSimulation(true);
+              navigateSim('briefing');
+            }}
+          />
+        );
     }
   })();
 
-  const showDevNav = import.meta.env.DEV;
+  const activePage = inSimulation ? null : page;
 
   return (
-    <div className={showDevNav ? 'relative min-h-screen pb-20' : 'relative min-h-screen'}>
+    <AppShell
+      activePage={activePage ?? 'home'}
+      userLabel={userLabel}
+      onNavigate={navigateMarketing}
+      onSignOut={signOut}
+      inSimulation={inSimulation}
+      simView={view}
+      onSimNavigate={navigateSim}
+      showDevNav={showDevNav}
+    >
       {body}
-
-      {showDevNav && (
-        <div className="fixed bottom-4 left-4 right-4 z-50 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-2 text-xs text-zinc-300 shadow-lg backdrop-blur-md sm:left-auto sm:right-4 sm:w-auto">
-          <span className="hidden sm:inline text-zinc-500">Preview</span>
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => navigate(v.id)}
-              className={`rounded-lg px-2 py-1 font-medium transition-colors ${
-                view === v.id
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-          <Sparkles className="ml-1 h-3.5 w-3.5 text-zinc-500" aria-hidden />
-        </div>
-      )}
-    </div>
+    </AppShell>
   );
 }

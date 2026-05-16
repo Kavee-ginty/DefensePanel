@@ -12,8 +12,16 @@ export const MODE_CONFIG = {
     arenaSubtitle: 'VC Pitch Defense',
     accept: 'application/pdf,.pdf',
     panelists: [
-      { id: 'core', label: 'Panelist 1 (Core)' },
-      { id: 'ops', label: 'Panelist 2 (Ops)' },
+      {
+        id: 'core',
+        label: 'Panelist 1 (Core)',
+        beyChatUrl: 'https://bey.chat/14aa8a81-1dce-4ed7-b4d2-e3daf164edc9',
+      },
+      {
+        id: 'ops',
+        label: 'Panelist 2 (Ops)',
+        beyChatUrl: 'https://bey.chat/9f389e69-9392-4757-8511-a618c95c990a',
+      },
     ],
   },
   academic: {
@@ -29,8 +37,16 @@ export const MODE_CONFIG = {
     arenaSubtitle: 'Academic Viva',
     accept: 'application/pdf,.pdf',
     panelists: [
-      { id: 'examiner', label: 'Examiner' },
-      { id: 'chair', label: 'Committee Chair' },
+      {
+        id: 'examiner',
+        label: 'Examiner',
+        beyChatUrl: 'https://bey.chat/14aa8a81-1dce-4ed7-b4d2-e3daf164edc9',
+      },
+      {
+        id: 'chair',
+        label: 'Committee Chair',
+        beyChatUrl: 'https://bey.chat/9f389e69-9392-4757-8511-a618c95c990a',
+      },
     ],
   },
   interview: {
@@ -46,8 +62,16 @@ export const MODE_CONFIG = {
     arenaSubtitle: 'Technical Interview',
     accept: 'application/pdf,.pdf',
     panelists: [
-      { id: 'hm', label: 'Hiring Manager' },
-      { id: 'tech', label: 'Technical Lead' },
+      {
+        id: 'hm',
+        label: 'Hiring Manager',
+        beyChatUrl: 'https://bey.chat/14aa8a81-1dce-4ed7-b4d2-e3daf164edc9',
+      },
+      {
+        id: 'tech',
+        label: 'Technical Lead',
+        beyChatUrl: 'https://bey.chat/9f389e69-9392-4757-8511-a618c95c990a',
+      },
     ],
   },
 };
