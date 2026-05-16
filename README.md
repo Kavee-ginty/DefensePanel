@@ -46,7 +46,7 @@ React Frontend
   -> Vercel /api/process-document
   -> GPT-4o context matrix
   -> Vercel /api/start-session
-  -> Beyond Presence managed agents
+  -> Beyond Presence just-in-time agent creation
   -> Live simulation arena
   -> Vercel /api/end-session
   -> GPT-4o scoring
@@ -116,9 +116,14 @@ Backend:
 ```env
 OPENAI_API_KEY=
 BEYOND_PRESENCE_API_KEY=
+BEYOND_PRESENCE_API_BASE_URL=https://api.bey.dev
+BEYOND_INTERROGATOR_AVATAR_ID=
+BEYOND_EVALUATOR_AVATAR_ID=
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
+
+`/api/start-session` uses the Beyond Presence API key server-side to list available avatars and create two disposable agents with session-specific prompts. The frontend receives only generated agent IDs and `https://bey.chat/{agent_id}` URLs.
 
 ## Demo Fallback
 

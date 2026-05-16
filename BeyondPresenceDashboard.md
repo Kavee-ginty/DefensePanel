@@ -1,13 +1,12 @@
 # Beyond Presence Dashboard Setup
 
-This document is the Member 4 runbook for configuring the external Beyond Presence dashboard for The Defense Panel.
+This document is the Member 4 runbook for configuring Beyond Presence access for The Defense Panel.
 
 ## Project
 
-Create a Beyond Presence project or workspace entry:
+The current build does not require manually creating dashboard agents for every user session. The Vercel backend creates two disposable, context-aware agents at session start using the Beyond Presence API.
 
 ```txt
-Project name: The Defense Panel
 Demo scenario: Startup Pitch
 Primary experience: high-pressure VC defense simulation
 ```
@@ -16,16 +15,15 @@ Use managed video agents for the hackathon demo. The app will connect through Ve
 
 ## Required Dashboard Settings
 
-Record these values immediately after setup and share them with the backend/WebRTC members through your team channel, not in public frontend code.
+Record these values after setup and share only non-secret IDs with the backend/WebRTC members. Do not paste the API key into frontend code or public docs.
 
 | Field | Value |
 | --- | --- |
-| Beyond Presence project name | The Defense Panel |
 | API key owner | Member 4 / PM |
-| Interrogator agent ID | `PASTE_AGENT_ID_HERE` |
-| Evaluator agent ID | `PASTE_AGENT_ID_HERE` |
-| Interrogator avatar ID | `PASTE_AVATAR_ID_HERE` |
-| Evaluator avatar ID | `PASTE_AVATAR_ID_HERE` |
+| API key env var | `BEYOND_PRESENCE_API_KEY` |
+| API base URL env var | `BEYOND_PRESENCE_API_BASE_URL=https://api.bey.dev` |
+| Optional Interrogator avatar ID | `BEYOND_INTERROGATOR_AVATAR_ID=` |
+| Optional Evaluator avatar ID | `BEYOND_EVALUATOR_AVATAR_ID=` |
 | Language | `en-US` |
 | Max session length | `10` minutes |
 | Local allowed origin | `http://localhost:5173` |
@@ -35,13 +33,22 @@ Record these values immediately after setup and share them with the backend/WebR
 ## Dashboard Checklist
 
 1. Sign in to the Beyond Presence dashboard.
-2. Create or select the project named `The Defense Panel`.
-3. Generate an API key from dashboard settings.
-4. Add the API key to Vercel environment variables only:
+2. Generate an API key from dashboard settings.
+3. Add the API key to Vercel environment variables only:
 
 ```env
 BEYOND_PRESENCE_API_KEY=
+BEYOND_PRESENCE_API_BASE_URL=https://api.bey.dev
 ```
+
+4. Optionally choose two stable avatar IDs from the avatar list and add them to Vercel:
+
+```env
+BEYOND_INTERROGATOR_AVATAR_ID=
+BEYOND_EVALUATOR_AVATAR_ID=
+```
+
+If these are not set, `/api/start-session` calls `GET /v1/avatars` and selects available avatars automatically.
 
 5. Add allowed origins:
 
@@ -50,13 +57,12 @@ http://localhost:5173
 https://YOUR_VERCEL_DOMAIN
 ```
 
-6. Create the two managed agents listed below.
-7. Test each agent in the dashboard before wiring the app.
-8. Verify the agents interrupt quickly and keep answers under 20 seconds.
+6. Start a session through the app. The backend will create the two agents automatically.
+7. Verify the generated agent URLs load and the agents keep answers under 20 seconds.
 
 ## Agent 1: The Interrogator
 
-Use this agent for content, business model, revenue, technical architecture, methodology, and contradiction attacks.
+This agent is created automatically by `/api/start-session`. It handles content, business model, revenue, technical architecture, methodology, and contradiction attacks.
 
 ```txt
 Name: The Interrogator
@@ -76,7 +82,7 @@ Avatar guidance:
 
 ## Agent 2: The Evaluator
 
-Use this agent for delivery pressure, filler-word counting, pacing, rambling, confidence, and speech discipline.
+This agent is created automatically by `/api/start-session`. It handles delivery pressure, filler-word counting, pacing, rambling, confidence, and speech discipline.
 
 ```txt
 Name: The Evaluator
@@ -109,11 +115,11 @@ Enable the strongest available equivalents of these settings:
 | Conversation analytics | Enabled |
 | Call transcripts | Enabled |
 
-If the dashboard does not expose a setting directly, enforce it inside the system prompt.
+If the API or dashboard does not expose a setting directly, enforce it inside the system prompt.
 
 ## Test Script
 
-Use this script in the dashboard test call:
+Use this script in a generated agent call:
 
 ```txt
 Hi, I am pitching Defense Panel. We have, um, like, built a revolutionary platform with 50k MRR, and our architecture is basically AI plus WebRTC and it scales automatically.
@@ -130,9 +136,10 @@ Expected behavior:
 
 The Beyond Presence setup is ready only when:
 
-- Both agents can be called from the dashboard.
-- Both agents use the exact prompts from `AIPromptPack.md`.
-- Agent IDs and avatar IDs are recorded in this file or a private PM handoff note.
+- `BEYOND_PRESENCE_API_KEY` is stored only in backend/Vercel environment variables.
+- `/api/start-session` returns two generated agent IDs and URLs.
+- Both generated agents use prompt logic from `api/_lib/agentPromptFactory.js`, derived from `AIPromptPack.md`.
+- Optional avatar IDs are recorded in Vercel env if the team wants deterministic avatars.
 - Allowed origins include localhost and the final Vercel URL.
 - At least one live test produces an audible interruption.
 - Members 1-3 know that the frontend must only call Vercel `/api` endpoints, never the Beyond Presence API directly with secret keys.

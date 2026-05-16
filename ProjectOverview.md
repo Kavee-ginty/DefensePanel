@@ -157,7 +157,15 @@ Required server-side secrets:
 ```env
 OPENAI_API_KEY=
 BEYOND_PRESENCE_API_KEY=
+BEYOND_PRESENCE_API_BASE_URL=https://api.bey.dev
 SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Optional server-side avatar fallbacks:
+
+```env
+BEYOND_INTERROGATOR_AVATAR_ID=
+BEYOND_EVALUATOR_AVATAR_ID=
 ```
 
 ## Demo Script Summary

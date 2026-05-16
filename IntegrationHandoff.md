@@ -6,7 +6,7 @@ This is the PM-to-engineering contract for wiring Beyond Presence, GPT-4o, Supab
 
 | Area | Owner | PM Check |
 | --- | --- | --- |
-| Beyond Presence dashboard | Member 4 | Agents exist, prompts pasted, IDs recorded |
+| Beyond Presence access | Member 4 | API key exists, optional avatar IDs recorded |
 | Frontend arena | Members 1/3 | Calls Vercel APIs only, renders avatar and webcam |
 | Vercel APIs | Member 2 | Secrets stay server-side, returns SDK-safe payload |
 | Supabase | Member 4 + Member 2 | `pitch_sessions` exists and receives demo rows |
@@ -26,6 +26,9 @@ Backend secret variables:
 ```env
 OPENAI_API_KEY=
 BEYOND_PRESENCE_API_KEY=
+BEYOND_PRESENCE_API_BASE_URL=https://api.bey.dev
+BEYOND_INTERROGATOR_AVATAR_ID=
+BEYOND_EVALUATOR_AVATAR_ID=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_URL=
 ```
@@ -91,9 +94,10 @@ Demo fallback:
 ## API Contract: `/api/start-session`
 
 Purpose:
-- Create or select the Beyond Presence agent/session.
-- Inject session-specific context into the agent prompt when supported.
-- Return only the safe connection payload needed by the frontend.
+- Create two disposable Beyond Presence agents for the session.
+- Select avatars from env fallback IDs or `GET /v1/avatars`.
+- Inject session-specific context into both agent prompts.
+- Return only browser-safe agent IDs and direct URLs.
 
 Request:
 
@@ -116,39 +120,47 @@ Request:
 }
 ```
 
-Recommended backend behavior:
+Backend behavior:
 
 1. Load `BEYOND_PRESENCE_API_KEY` from server env.
-2. Create just-in-time agents if dynamic context is needed, or use dashboard agent IDs if the dashboard supports runtime context another way.
-3. Build the system prompt by combining:
-   - `The Interrogator` or `The Evaluator` prompt from `AIPromptPack.md`
-   - current `context_matrix`
-4. Return session data safe for the browser.
+2. Load optional `BEYOND_INTERROGATOR_AVATAR_ID` and `BEYOND_EVALUATOR_AVATAR_ID`.
+3. If avatar IDs are missing, call Beyond Presence `GET /v1/avatars?limit=50`.
+4. Build prompts with `api/_lib/agentPromptFactory.js`.
+5. Create both agents in parallel with Beyond Presence `POST /v1/agents`.
+6. Return generated IDs and `https://bey.chat/{agent_id}` URLs.
 
 Response shape:
 
 ```json
 {
-  "session_id": "bey_session_id_or_internal_id",
-  "interrogator_agent_id": "agent_id",
-  "evaluator_agent_id": "agent_id",
-  "connection": {
-    "type": "beyond_presence_managed_agent",
-    "token": "browser_safe_session_token_if_required",
-    "url": "browser_safe_url_if_required"
+  "session_id": "defense-session-...",
+  "user_id": "demo-user-1",
+  "scenario": "Startup Pitch",
+  "agents": {
+    "interrogator": {
+      "agent_id": "agent_id",
+      "avatar_id": "avatar_id",
+      "url": "https://bey.chat/agent_id",
+      "name": "The Interrogator"
+    },
+    "evaluator": {
+      "agent_id": "agent_id",
+      "avatar_id": "avatar_id",
+      "url": "https://bey.chat/agent_id",
+      "name": "The Evaluator"
+    }
   },
-  "context_summary": "short summary for UI"
+  "context_summary": "short summary for UI",
+  "avatar_source": "env | api | env-and-api",
+  "warnings": []
 }
 ```
 
-If the team uses the hosted managed-agent iframe/direct-link route, return:
+Beyond Presence calls used:
 
-```json
-{
-  "session_id": "demo-session-1",
-  "interrogator_url": "https://bey.chat/AGENT_ID",
-  "evaluator_url": "https://bey.chat/AGENT_ID"
-}
+```txt
+GET https://api.bey.dev/v1/avatars?limit=50
+POST https://api.bey.dev/v1/agents
 ```
 
 ## API Contract: `/api/end-session`
@@ -157,6 +169,7 @@ Purpose:
 - Analyze the transcript with GPT-4o.
 - Insert final metrics into Supabase.
 - Return the latest session and history for the debrief dashboard.
+- Optionally delete disposable Beyond Presence agents after the debrief is saved.
 
 Request:
 
@@ -166,6 +179,8 @@ Request:
   "scenario_type": "Startup Pitch",
   "document_summary": "short context summary",
   "duration_seconds": 245,
+  "interrogator_agent_id": "generated_agent_id",
+  "evaluator_agent_id": "generated_agent_id",
   "transcript": [
     {
       "speaker": "user",
@@ -178,6 +193,10 @@ Request:
   ]
 }
 ```
+
+Cleanup rule:
+- If `interrogator_agent_id` and `evaluator_agent_id` are present, call Beyond Presence `DELETE /v1/agents/{id}` after saving the session.
+- If cleanup fails, log it but still return the debrief. Do not break the user flow because cleanup failed.
 
 Supabase insert:
 

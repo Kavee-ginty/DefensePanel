@@ -82,11 +82,10 @@ Focus:
 ---
 
 ### M4
-- Create Beyond Presence agents:
-  - Evaluator
-  - Expert
-- Write strict AI system prompts
-- Generate API keys for backend usage
+- Generate Beyond Presence API key for backend usage
+- Choose optional fallback avatar IDs if needed
+- Write strict AI system prompts for automated agent generation
+- Confirm the backend will create disposable agents via `/api/start-session`
 
 ---
 
@@ -156,15 +155,16 @@ POST /api/start-session
 ```
 
 Responsibilities:
-- Inject AI prompts
-- Pass PDF summary
-- Initialize Beyond Presence session
-- Return session_token
+- Inject AI prompts and PDF context
+- List/select available Beyond Presence avatars
+- Create 2 disposable Beyond Presence agents
+- Return browser-safe agent IDs and URLs
 
 ---
 
 ### M4
 Live testing:
+- Start a fresh session and verify 2 agents are generated automatically
 - Speak to AI
 - Use filler words intentionally
 - Trigger interruptions
