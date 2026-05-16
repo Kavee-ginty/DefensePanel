@@ -24,6 +24,7 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
     label = null,
     started = false,
     muted = false,
+    publishMic = true,
     fillHeight = false,
     className = '',
     onAvatarFirstSpeech = null,
@@ -184,15 +185,17 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
 
         room.remoteParticipants.forEach((p) => wireParticipant(p));
 
-        const mic = await createLocalAudioTrack();
-        if (cancelled) {
-          mic.stop();
-          room.disconnect();
-          return;
+        if (publishMic) {
+          const mic = await createLocalAudioTrack();
+          if (cancelled) {
+            mic.stop();
+            room.disconnect();
+            return;
+          }
+          localAudioTrackRef.current = mic;
+          await room.localParticipant.publishTrack(mic);
+          await room.localParticipant.setMicrophoneEnabled(!muted);
         }
-        localAudioTrackRef.current = mic;
-        await room.localParticipant.publishTrack(mic);
-        await room.localParticipant.setMicrophoneEnabled(!muted);
       } catch (err) {
         console.error('[BeyAgentCall]', err);
         if (!cancelled) {
@@ -222,13 +225,14 @@ const BeyAgentCall = forwardRef(function BeyAgentCall(
         localAudioTrackRef.current = null;
       }
     };
-  }, [started, agentId]);
+  }, [started, agentId, publishMic]);
 
   useEffect(() => {
+    if (!publishMic) return;
     const room = roomRef.current;
     if (!room || room.state !== ConnectionState.Connected) return;
     void room.localParticipant.setMicrophoneEnabled(!muted).catch(() => {});
-  }, [muted, started, agentId]);
+  }, [muted, started, agentId, publishMic]);
 
   return (
     <div

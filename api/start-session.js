@@ -7,6 +7,33 @@ import {
 
 const BEYOND_AGENTS_URL = 'https://api.bey.dev/v1/agents'
 
+const SILENT_OBSERVER_SYSTEM_PROMPT =
+  'You are a silent observer on a panel. Do not speak. Do not respond to anything. Remain completely silent.'
+
+/** @param {unknown} agentData */
+function extractAgentId(agentData) {
+  const agentRecord =
+    agentData && typeof agentData === 'object' ? agentData : null
+  return agentRecord &&
+    typeof agentRecord.id === 'string' &&
+    agentRecord.id.trim()
+    ? agentRecord.id.trim()
+    : null
+}
+
+/** Best-effort delete when dual-agent create partially fails */
+async function deleteAgentBestEffort(agentId) {
+  if (!agentId?.trim() || !process.env.BEYOND_PRESENCE_API_KEY?.trim()) return
+  try {
+    await fetch(`${BEYOND_AGENTS_URL}/${encodeURIComponent(agentId.trim())}`, {
+      method: 'DELETE',
+      headers: { 'x-api-key': process.env.BEYOND_PRESENCE_API_KEY },
+    })
+  } catch {
+    /* noop */
+  }
+}
+
 const DEV_LOGGING =
   (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') ||
   process.env.NODE_ENV !== 'production'
@@ -326,7 +353,9 @@ export default async function handler(req, res) {
       )
     }
 
-    const agentData = await createAgent({
+    const avatar_id_2 = String(process.env.BEY_AVATAR_ID2 ?? '').trim()
+
+    const primaryPayload = {
       avatar_id,
       name,
       system_prompt: finalSystemPrompt,
@@ -334,26 +363,66 @@ export default async function handler(req, res) {
       conversational_flow: flowForBeyond,
       starting_script,
       max_session_length_minutes: beyondSessionCap,
-    })
+    }
+
+    let agentData
+    let agentDataSilent = null
+
+    if (avatar_id_2) {
+      const silentName = `${name}-silent-observer`
+      const [r1, r2] = await Promise.allSettled([
+        createAgent(primaryPayload),
+        createAgent({
+          avatar_id: avatar_id_2,
+          name: silentName,
+          system_prompt: SILENT_OBSERVER_SYSTEM_PROMPT,
+          greeting: '',
+          conversational_flow: '',
+          starting_script: '',
+          max_session_length_minutes: beyondSessionCap,
+        }),
+      ])
+
+      if (r1.status === 'fulfilled') {
+        agentData = r1.value
+      }
+      if (r2.status === 'fulfilled') {
+        agentDataSilent = r2.value
+      }
+
+      if (r1.status !== 'fulfilled') {
+        if (r2.status === 'fulfilled') {
+          await deleteAgentBestEffort(extractAgentId(r2.value))
+        }
+        throw r1.status === 'rejected' ? r1.reason : new Error('Primary agent create failed')
+      }
+      if (r2.status !== 'fulfilled') {
+        await deleteAgentBestEffort(extractAgentId(r1.value))
+        throw r2.status === 'rejected' ? r2.reason : new Error('Silent agent create failed')
+      }
+    } else {
+      agentData = await createAgent(primaryPayload)
+    }
 
     logAgentKeys('agent', agentData)
+    if (agentDataSilent) logAgentKeys('agent-silent', agentDataSilent)
 
-    const agentRecord =
-      agentData && typeof agentData === 'object' ? agentData : null
-    const agent_id =
-      agentRecord &&
-      typeof agentRecord.id === 'string' &&
-      agentRecord.id.trim()
-        ? agentRecord.id.trim()
-        : null
-
+    const agent_id = extractAgentId(agentData)
     if (!agent_id) {
       throw new Error('Beyond Presence response missing agent id')
+    }
+
+    const agent_id_2 = agentDataSilent ? extractAgentId(agentDataSilent) : null
+    if (avatar_id_2 && !agent_id_2) {
+      await deleteAgentBestEffort(agent_id)
+      throw new Error('Beyond Presence response missing silent agent id')
     }
 
     const chatOrigin = (process.env.BEY_CHAT_EMBED_ORIGIN || 'https://bey.chat')
       .replace(/\/$/, '')
     const agent_embed_url = `${chatOrigin}/${agent_id}`
+    const agentRecord =
+      agentData && typeof agentData === 'object' ? agentData : null
     const agent_name =
       agentRecord &&
       typeof agentRecord.name === 'string' &&
@@ -361,11 +430,33 @@ export default async function handler(req, res) {
         ? agentRecord.name.trim()
         : name
 
+    const agent_embed_url_2 =
+      agent_id_2 != null ? `${chatOrigin}/${agent_id_2}` : null
+    const silentRecord =
+      agentDataSilent && typeof agentDataSilent === 'object'
+        ? agentDataSilent
+        : null
+    const agent_name_2 =
+      silentRecord &&
+      typeof silentRecord.name === 'string' &&
+      silentRecord.name.trim() !== ''
+        ? silentRecord.name.trim()
+        : agent_id_2
+          ? `${name}-silent-observer`
+          : null
+
     return res.status(200).json({
       success: true,
       agent_id,
       agent_embed_url,
       agent_name,
+      ...(agent_id_2 && agent_embed_url_2
+        ? {
+            agent_id_2,
+            agent_embed_url_2,
+            ...(agent_name_2 ? { agent_name_2 } : {}),
+          }
+        : {}),
     })
   } catch (err) {
     console.error('start-session failed', err)

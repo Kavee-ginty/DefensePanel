@@ -341,7 +341,7 @@ async function insertPitchSession(admin, baseRow, grades) {
  * Requires `Authorization: Bearer <supabase_access_token>` so the inserted
  * row is attributed to the real signed-in user (and shows up in History).
  *
- * Body: { transcript_text?, agent_id?, scenario_type, duration_seconds, mode_id? }
+ * Body: { transcript_text?, agent_id?, agent_id_2?, scenario_type, duration_seconds, mode_id? }
  * Returns: { success, grades, session, agent_deleted, transcript_meta? }
  *
  * @param {import('@vercel/node').VercelRequest} req
@@ -370,6 +370,7 @@ export default async function handler(req, res) {
     const {
       transcript_text,
       agent_id,
+      agent_id_2,
       scenario_type,
       mode_id,
       duration_seconds,
@@ -494,21 +495,28 @@ ${mergedTranscriptText}`,
     if (error || !session) {
       console.error('[end-session] Supabase insert failed', error)
       await deleteAgentAwait(agent_id)
+      await deleteAgentAwait(agent_id_2)
       throw new Error(error?.message || 'Could not save session')
     }
 
     const { deleted, status } = await deleteAgentAwait(agent_id)
+    const { deleted: deleted2, status: status2 } =
+      await deleteAgentAwait(agent_id_2)
 
     return res.status(200).json({
       success: true,
       grades,
       session,
       agent_deleted: deleted,
+      agent_deleted_2: deleted2,
       transcript_meta: {
         ...transcriptMeta,
         transcript_chars: mergedTranscriptText.length,
       },
       ...(typeof status === 'number' ? { agent_delete_status: status } : {}),
+      ...(typeof status2 === 'number'
+        ? { agent_delete_status_2: status2 }
+        : {}),
     })
   } catch (err) {
     console.error('end-session failed', err)
