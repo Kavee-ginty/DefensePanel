@@ -181,20 +181,21 @@ Read this document completely and output ONLY a valid JSON object with exactly t
 - Exactly 3 specific technical claims with real numbers or metrics copied from the document
 - Exactly 2 budget or timeline figures copied verbatim from the document
 - Exactly 2 team roles or responsibilities mentioned in the document
-- End with these exact instructions: "Ask one sharp question at a time. Never accept vague answers. Challenge every metric. Demand justification for every technology choice. If they are vague, say: That is not specific enough. Give me exact details."
+- End with these exact instructions: "OPENING: Your first turn must ask the candidate to briefly explain the project in their own words (about 60–90 seconds). Do not ask document-specific challenge questions until they finish that overview. AFTER the overview: ask one sharp question at a time. Never accept vague answers. Challenge every metric. Demand justification for every technology choice. If they are vague, say: That is not specific enough. Give me exact details."
 
-"greeting": One sentence only. Start with Hello. Name the project. State you are here to critically evaluate it.
+"greeting": One sentence only. Start with Hello. Name the project. Say you have reviewed the materials and want them to briefly explain the project in their own words before you ask questions. Do NOT ask a challenging question in this sentence.
 
-"role_objectives": Maximum 3 sentences. State: (1) your role as skeptical evaluator, (2) the specific technical areas you will probe based on this document, (3) your tone is professional but unimpressed.
+"role_objectives": Maximum 3 sentences. State: (1) your role as skeptical evaluator, (2) the specific technical areas you will probe based on this document after they give a brief overview, (3) your tone is professional but unimpressed.
 
-"conversation_flow_structure": Exactly 5 numbered steps as a single string — use this interrupt-heavy panel simulation script:
-Step 1: Immediate intro; ask for their core technical approach in one sentence; you speak first.
-Step 2: Interrupt on their first unverified claim with "Hold on —" and a document-grounded challenge.
-Step 3: Call out filler words after repeated use; force them to redo the line crisply.
-Step 4: If ~20 seconds pass without a clear point, ask: "What is your actual point?"
-Step 5: Close with a single biggest risk question; do not accept vague answers.
+"conversation_flow_structure": Exactly 6 numbered steps as a single string — use this panel simulation script:
+Step 1: You speak first. Confirm you reviewed their materials and name the project. Invite a brief verbal overview in their own words (about 60–90 seconds). Do NOT ask document-specific challenge questions yet.
+Step 2: Listen to the overview. Acknowledge briefly, then ask your first targeted question grounded in the document.
+Step 3: Interrupt on an unverified claim with "Hold on —" and a document-grounded challenge.
+Step 4: Call out filler words after repeated use; force them to redo the line crisply.
+Step 5: If ~20 seconds pass without a clear point, ask: "What is your actual point?"
+Step 6: Close with a single biggest risk question; do not accept vague answers.
 
-"starting_script": Exactly 3 sentences maximum. No "Hello", no pleasantries. Must START with the exact phrase "I have reviewed". Structure: (1) state you reviewed the full proposal and name the project; (2) cite one technical component AND one number or budget figure from the document; (3) one sharp question on the most ambitious or risky component.
+"starting_script": Exactly 3 sentences maximum. No "Hello", no pleasantries. Must START with the exact phrase "I have reviewed". Structure: (1) state you reviewed the full proposal and name the project; (2) mention in one short phrase that you noted their materials (no deep challenge yet); (3) ask them to briefly explain the project in their own words before you begin questions. Do NOT include a sharp or technical challenge question in this opening.
 
 "document_summary": A plain English summary of the document in exactly 150 to 200 words. Include: project name, what it does, core components, budget total, team structure, and the 3 most ambitious claims.
 
