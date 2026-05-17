@@ -70,6 +70,7 @@ export default function ContextUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [localError, setLocalError] = useState(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedDocumentText, setExtractedDocumentText] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStage, setDeployStage] = useState(null);
 
@@ -118,6 +119,7 @@ export default function ContextUpload({
     onFileChange?.(null);
     setLocalError(null);
     setIsExtracting(false);
+    setExtractedDocumentText('');
     if (inputRef.current) inputRef.current.value = '';
   }, [onFileChange]);
 
@@ -134,15 +136,18 @@ export default function ContextUpload({
 
       setLocalError(null);
       onFileChange?.(next);
+      setExtractedDocumentText('');
       setIsExtracting(true);
 
       try {
         const text = await extractDocumentText(next);
         console.log('[Defense Panel] extracted text:', text);
+        setExtractedDocumentText(text);
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Could not extract text from file.';
         setLocalError(message);
+        setExtractedDocumentText('');
         onFileChange?.(null);
         if (inputRef.current) inputRef.current.value = '';
       } finally {
@@ -166,7 +171,7 @@ export default function ContextUpload({
 
     try {
       setDeployStage('Reading document with GPT-4o…');
-      const docResult = await processDocument(file);
+      const docResult = await processDocument(file, extractedDocumentText);
       const prompts = docResult?.prompts;
       if (!prompts?.system_prompt) {
         throw new Error('Document processing returned no system prompt');
@@ -215,7 +220,7 @@ export default function ContextUpload({
       setIsDeploying(false);
       setDeployStage(null);
     }
-  }, [file, briefingSetup, onAgentReady, onInitialize]);
+  }, [file, extractedDocumentText, briefingSetup, onAgentReady, onInitialize]);
 
   const buttonLabel = isDeploying
     ? deployStage ?? 'Processing…'

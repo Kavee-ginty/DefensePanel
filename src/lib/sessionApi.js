@@ -19,13 +19,17 @@ async function readJson(res) {
 
 /**
  * @param {File} file PDF, DOCX, or PPTX file
+ * @param {string} [documentText] Optional pre-extracted text (e.g. from the browser) so the server can skip file parsing.
  * @returns {Promise<{ success: true, prompts: object, document_summary: string }>}
  */
-export async function processDocument(file) {
+export async function processDocument(file, documentText = '') {
   try {
     if (!file) throw new Error('No file provided');
     const formData = new FormData();
     formData.append('document', file);
+    if (documentText.trim()) {
+      formData.append('document_text', documentText.trim());
+    }
 
     const res = await fetch('/api/process-document', {
       method: 'POST',

@@ -7,31 +7,24 @@
   "cleanUrls": true,
   "functions": {
     "api/process-document.js": {
-      "memory": 1024,
       "maxDuration": 60
     },
     "api/end-session.js": {
-      "memory": 1024,
       "maxDuration": 60
     },
     "api/start-session.js": {
-      "memory": 512,
       "maxDuration": 30
     },
     "api/start-call.js": {
-      "memory": 256,
       "maxDuration": 20
     },
     "api/create-checkout.js": {
-      "memory": 256,
       "maxDuration": 15
     },
     "api/sessions/index.js": {
-      "memory": 256,
       "maxDuration": 15
     },
     "api/sessions/[id].js": {
-      "memory": 256,
       "maxDuration": 15
     }
   },

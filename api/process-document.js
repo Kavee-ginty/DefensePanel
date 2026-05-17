@@ -29,6 +29,11 @@ function parseForm(req) {
   })
 }
 
+function getFieldValue(fields, key) {
+  const value = fields?.[key]
+  return Array.isArray(value) ? value[0] : value
+}
+
 function getUploadedDocument(files) {
   const field = files.document ?? files.pdf
   const uploaded = Array.isArray(field) ? field[0] : field
@@ -129,6 +134,12 @@ async function extractDocumentText(file, buffer) {
   throw new Error('Unsupported file type. Please upload a PDF, DOCX, or PPTX file.')
 }
 
+async function extractUploadedDocumentText(files) {
+  const document = getUploadedDocument(files)
+  const buffer = await readFile(document.filepath)
+  return extractDocumentText(document, buffer)
+}
+
 /**
  * Vercel Serverless — POST /api/process-document
  * @param {import('@vercel/node').VercelRequest} req
@@ -140,10 +151,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { files } = await parseForm(req)
-    const document = getUploadedDocument(files)
-    const buffer = await readFile(document.filepath)
-    const documentText = await extractDocumentText(document, buffer)
+    const { fields, files } = await parseForm(req)
+    const providedText = String(getFieldValue(fields, 'document_text') ?? '').trim()
+    const documentText = providedText || (await extractUploadedDocumentText(files))
 
     if (!documentText) {
       throw new Error('Could not extract text from document')
