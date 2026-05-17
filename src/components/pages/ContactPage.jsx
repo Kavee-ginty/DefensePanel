@@ -24,7 +24,7 @@ export default function ContactPage() {
               <Mail className="h-5 w-5 shrink-0 text-blue-500" aria-hidden />
               <div>
                 <p className="text-sm font-medium text-zinc-200">Email</p>
-                <p className="mt-1 text-sm text-zinc-400">hello@defensepanel.io</p>
+                <p className="mt-1 text-sm text-zinc-400">kaveeshaginodh1@gmail.com</p>
               </div>
             </div>
             <div className="flex gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
@@ -32,7 +32,7 @@ export default function ContactPage() {
               <div>
                 <p className="text-sm font-medium text-zinc-200">HQ</p>
                 <p className="mt-1 text-sm text-zinc-400">
-                  Remote-first · Demo hours Mon–Fri 9–18 UTC
+                  34, Anandarama Road, Molpe, Moratuwa
                 </p>
               </div>
             </div>

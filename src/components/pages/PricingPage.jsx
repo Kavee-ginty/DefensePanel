@@ -83,34 +83,6 @@ export default function PricingPage({ onStartSimulation }) {
 
     setCheckoutLoading(true);
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7742/ingest/2bd9f6ad-4e83-4685-9ef2-80979e0b09d5', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Debug-Session-Id': 'b5b729',
-        },
-        body: JSON.stringify({
-          sessionId: 'b5b729',
-          runId: 'post-fix',
-          hypothesisId: 'H1,H3,H5',
-          location: 'PricingPage.jsx:handleProCheckout:beforeFetch',
-          message: 'checkout fetch start',
-          data: {
-            checkoutUrl: CHECKOUT_URL,
-            checkoutUrlLength: CHECKOUT_URL.length,
-            viteDodoSet: Boolean(import.meta.env.VITE_DODO_API_URL),
-            stripLocalhostInProd: STRIP_LOCALHOST_DODO,
-            origin:
-              typeof window !== 'undefined' ? window.location?.origin : null,
-            isAbsolute:
-              typeof CHECKOUT_URL === 'string' && /^https?:\/\//i.test(CHECKOUT_URL),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-
       const res = await fetch(CHECKOUT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,29 +98,6 @@ export default function PricingPage({ onStartSimulation }) {
       }
       window.location.href = data.checkout_url;
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7742/ingest/2bd9f6ad-4e83-4685-9ef2-80979e0b09d5', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Debug-Session-Id': 'b5b729',
-        },
-        body: JSON.stringify({
-          sessionId: 'b5b729',
-          runId: 'checkout-debug',
-          hypothesisId: 'H2,H3,H4',
-          location: 'PricingPage.jsx:handleProCheckout:catch',
-          message: 'checkout error',
-          runId: 'post-fix',
-          data: {
-            name: err?.name,
-            message: err?.message,
-            checkoutUrl: CHECKOUT_URL,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       console.error('[PricingPage] checkout', err);
       toast.error(err?.message || 'Could not start checkout');
     } finally {

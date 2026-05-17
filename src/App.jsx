@@ -32,6 +32,7 @@ const HistoryPage = lazy(
 const DashboardPage = lazy(
   () => import('./components/pages/DashboardPage.jsx'),
 );
+const LandingPage = lazy(() => import('./components/pages/LandingPage.jsx'));
 
 const DEFAULT_BRIEFING_SETUP = {
   difficulty: 'standard',
@@ -96,6 +97,7 @@ export default function App() {
   const [briefingSetup, setBriefingSetup] = useState(DEFAULT_BRIEFING_SETUP);
   const [bookmarkUpdatingSessionId, setBookmarkUpdatingSessionId] =
     useState(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   const accessToken = session?.access_token ?? null;
   const userId = user?.id ?? null;
@@ -350,7 +352,13 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthPage />;
+    return showAuth ? (
+      <AuthPage />
+    ) : (
+      <Suspense fallback={<RouteFallback />}>
+        <LandingPage onTry={() => setShowAuth(true)} />
+      </Suspense>
+    );
   }
 
   const body = (() => {
@@ -430,16 +438,7 @@ export default function App() {
 
     switch (page) {
       case 'home':
-        return (
-          <ModeSelection
-            selectedId={mode}
-            onSelect={setMode}
-            onContinue={() => {
-              setInSimulation(true);
-              navigateSim('briefing');
-            }}
-          />
-        );
+        return <LandingPage onTry={startSimulation} />;
       case 'about':
         return <AboutPage />;
       case 'contact':
@@ -471,16 +470,7 @@ export default function App() {
           />
         );
       default:
-        return (
-          <ModeSelection
-            selectedId={mode}
-            onSelect={setMode}
-            onContinue={() => {
-              setInSimulation(true);
-              navigateSim('briefing');
-            }}
-          />
-        );
+        return <LandingPage onTry={startSimulation} />;
     }
   })();
 
