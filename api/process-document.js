@@ -2,46 +2,8 @@
 import { readFile } from 'node:fs/promises'
 import { formidable } from 'formidable'
 import OpenAI from 'openai'
-import { PDFParse } from 'pdf-parse'
 import JSZip from 'jszip'
 import mammoth from 'mammoth'
-
-// #region agent log
-console.log(
-  '[agent-debug:b5b729]',
-  JSON.stringify({
-    sessionId: 'b5b729',
-    runId: 'pre-fix',
-    hypothesisId: 'H2',
-    location: 'api/process-document.js:module',
-    message: 'process-document module loaded',
-    data: {
-      nodeVersion: process.version,
-      vercelEnv: process.env.VERCEL_ENV || null,
-    },
-    timestamp: Date.now(),
-  }),
-)
-fetch('http://127.0.0.1:7742/ingest/2bd9f6ad-4e83-4685-9ef2-80979e0b09d5', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-Debug-Session-Id': 'b5b729',
-  },
-  body: JSON.stringify({
-    sessionId: 'b5b729',
-    runId: 'pre-fix',
-    hypothesisId: 'H2',
-    location: 'api/process-document.js:module',
-    message: 'process-document module loaded',
-    data: {
-      nodeVersion: process.version,
-      vercelEnv: process.env.VERCEL_ENV || null,
-    },
-    timestamp: Date.now(),
-  }),
-}).catch(() => {})
-// #endregion
 
 export const config = {
   api: {
@@ -51,29 +13,6 @@ export const config = {
 
 const MAX_DOC_CHARS_FOR_LLM = 14_000
 const PPTX_SLIDE_TEXT_RE = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g
-
-// #region agent log
-function agentDebugLog(hypothesisId, message, data = {}) {
-  const payload = {
-    sessionId: 'b5b729',
-    runId: 'pre-fix',
-    hypothesisId,
-    location: 'api/process-document.js:handler',
-    message,
-    data,
-    timestamp: Date.now(),
-  }
-  console.log('[agent-debug:b5b729]', JSON.stringify(payload))
-  fetch('http://127.0.0.1:7742/ingest/2bd9f6ad-4e83-4685-9ef2-80979e0b09d5', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': 'b5b729',
-    },
-    body: JSON.stringify(payload),
-  }).catch(() => {})
-}
-// #endregion
 
 function parseForm(req) {
   const form = formidable({
@@ -149,6 +88,7 @@ function textFromSlideXml(xml) {
 }
 
 async function extractPdfText(buffer) {
+  const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: buffer })
   try {
     const parsed = await parser.getText()
@@ -206,15 +146,6 @@ async function extractUploadedDocumentText(files) {
  * @param {import('@vercel/node').VercelResponse} res
  */
 export default async function handler(req, res) {
-  // #region agent log
-  agentDebugLog('H2,H5', 'handler entered', {
-    method: req.method,
-    url: req.url,
-    contentType: req.headers['content-type'] || null,
-    contentLength: req.headers['content-length'] || null,
-  })
-  // #endregion
-
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' })
   }
@@ -222,14 +153,6 @@ export default async function handler(req, res) {
   try {
     const { fields, files } = await parseForm(req)
     const providedText = String(getFieldValue(fields, 'document_text') ?? '').trim()
-    // #region agent log
-    agentDebugLog('H3', 'form parsed', {
-      fieldKeys: Object.keys(fields || {}),
-      fileKeys: Object.keys(files || {}),
-      hasProvidedText: Boolean(providedText),
-      providedTextLength: providedText.length,
-    })
-    // #endregion
     const documentText = providedText || (await extractUploadedDocumentText(files))
 
     if (!documentText) {
@@ -242,15 +165,6 @@ export default async function handler(req, res) {
         : documentText
 
     const extractedText = truncated
-
-    // #region agent log
-    agentDebugLog('H3,H4', 'before OpenAI call', {
-      source: providedText ? 'provided_text' : 'server_file_parse',
-      documentTextLength: documentText.length,
-      truncatedLength: extractedText.length,
-      hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY?.trim()),
-    })
-    // #endregion
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -332,13 +246,6 @@ ${extractedText}`,
       document_summary: data.document_summary,
     })
   } catch (err) {
-    // #region agent log
-    agentDebugLog('H2,H3,H4', 'handler caught error', {
-      errorName: err?.name,
-      errorMessage: err?.message,
-      errorStackHead: String(err?.stack || '').split('\n').slice(0, 3).join('\n'),
-    })
-    // #endregion
     console.error('process-document failed', err)
     return res.status(500).json({
       success: false,
