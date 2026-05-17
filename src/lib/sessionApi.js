@@ -17,6 +17,27 @@ async function readJson(res) {
   }
 }
 
+// #region agent log
+function agentDebugLog(hypothesisId, message, data = {}) {
+  fetch('http://127.0.0.1:7742/ingest/2bd9f6ad-4e83-4685-9ef2-80979e0b09d5', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Debug-Session-Id': 'b5b729',
+    },
+    body: JSON.stringify({
+      sessionId: 'b5b729',
+      runId: 'pre-fix',
+      hypothesisId,
+      location: 'src/lib/sessionApi.js:processDocument',
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+}
+// #endregion
+
 /**
  * @param {File} file PDF, DOCX, or PPTX file
  * @param {string} [documentText] Optional pre-extracted text (e.g. from the browser) so the server can skip file parsing.
@@ -31,10 +52,34 @@ export async function processDocument(file, documentText = '') {
       formData.append('document_text', documentText.trim());
     }
 
+    // #region agent log
+    agentDebugLog('H1,H3,H5', 'processDocument dispatching request', {
+      method: 'POST',
+      fileSize: file.size,
+      fileType: file.type,
+      fileExt: String(file.name || '').split('.').pop() || '',
+      documentTextLength: documentText.trim().length,
+      hasDocumentText: Boolean(documentText.trim()),
+    });
+    // #endregion
+
     const res = await fetch('/api/process-document', {
       method: 'POST',
       body: formData,
     });
+    const responsePreview = await res
+      .clone()
+      .text()
+      .then((text) => text.slice(0, 300))
+      .catch(() => '');
+    // #region agent log
+    agentDebugLog('H2,H4,H5', 'processDocument received response', {
+      status: res.status,
+      ok: res.ok,
+      contentType: res.headers.get('content-type'),
+      responsePreview,
+    });
+    // #endregion
     const data = await readJson(res);
     if (!res.ok || !data?.success) {
       const msg = data?.error || `Document processing failed (${res.status})`;
@@ -42,6 +87,12 @@ export async function processDocument(file, documentText = '') {
     }
     return data;
   } catch (err) {
+    // #region agent log
+    agentDebugLog('H1,H2,H3,H4,H5', 'processDocument threw error', {
+      errorName: err?.name,
+      errorMessage: err?.message,
+    });
+    // #endregion
     console.error('[sessionApi] processDocument failed', err);
     toast.error(err.message || 'Could not process document');
     throw err;
