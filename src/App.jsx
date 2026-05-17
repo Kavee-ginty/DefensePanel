@@ -1,4 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import {
+  Fragment,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from './context/AuthContext.jsx';
@@ -16,6 +23,7 @@ import {
 import { endSession as endSessionApi } from './lib/sessionApi.js';
 import AppShell from './components/AppShell.jsx';
 import AuthPage from './components/AuthPage.jsx';
+import Footer from './components/Footer.jsx';
 import ModeSelection from './components/ModeSelection.jsx';
 
 const ContextUpload = lazy(() => import('./components/ContextUpload.jsx'));
@@ -107,8 +115,6 @@ export default function App() {
     user?.email?.split('@')[0] ||
     null;
 
-  const showDevNav = import.meta.env.DEV;
-
   const loadSessions = useCallback(
     async (background = false) => {
       if (!accessToken) return;
@@ -163,6 +169,16 @@ export default function App() {
       setPage('home');
     }
   }, [session, inSimulation]);
+
+  useEffect(() => {
+    if (!session || !showAuth) return;
+    setShowAuth(false);
+    setInSimulation(false);
+    setPage('home');
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
+  }, [session, showAuth]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -344,20 +360,28 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
-        <span className="sr-only">Loading</span>
+      <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-400">
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
+          <span className="sr-only">Loading</span>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   if (!session) {
-    return showAuth ? (
-      <AuthPage />
-    ) : (
-      <Suspense fallback={<RouteFallback />}>
-        <LandingPage onTry={() => setShowAuth(true)} />
-      </Suspense>
+    return (
+      <Fragment>
+        {showAuth ? (
+          <AuthPage />
+        ) : (
+          <Suspense fallback={<RouteFallback />}>
+            <LandingPage onTry={() => setShowAuth(true)} />
+          </Suspense>
+        )}
+        <Footer />
+      </Fragment>
     );
   }
 
@@ -438,7 +462,7 @@ export default function App() {
 
     switch (page) {
       case 'home':
-        return <LandingPage onTry={startSimulation} />;
+        return <LandingPage onTry={startSimulation} signedIn />;
       case 'about':
         return <AboutPage />;
       case 'contact':
@@ -470,7 +494,7 @@ export default function App() {
           />
         );
       default:
-        return <LandingPage onTry={startSimulation} />;
+        return <LandingPage onTry={startSimulation} signedIn />;
     }
   })();
 
@@ -483,9 +507,7 @@ export default function App() {
       onNavigate={navigateMarketing}
       onSignOut={signOut}
       inSimulation={inSimulation}
-      simView={view}
-      onSimNavigate={navigateSim}
-      showDevNav={showDevNav}
+      hideFooter={inSimulation && view === 'arena'}
     >
       <Suspense fallback={<RouteFallback />}>{body}</Suspense>
     </AppShell>

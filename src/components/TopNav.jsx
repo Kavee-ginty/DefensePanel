@@ -9,22 +9,12 @@ const MARKETING_LINKS = [
   { id: 'history', label: 'History' },
 ];
 
-const DEV_VIEWS = [
-  { id: 'lobby', label: 'Lobby' },
-  { id: 'briefing', label: 'Briefing' },
-  { id: 'arena', label: 'Arena' },
-  { id: 'debrief', label: 'Debrief' },
-];
-
 export default function TopNav({
   activePage = 'home',
   userLabel = null,
   onNavigate,
   onSignOut,
   inSimulation = false,
-  simView = null,
-  onSimNavigate,
-  showDevNav = false,
 }) {
   return (
     <header className="no-print fixed inset-x-0 top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
@@ -74,31 +64,6 @@ export default function TopNav({
           )}
         </div>
       </div>
-
-      {showDevNav && (
-        <div className="border-t border-zinc-800/60 bg-zinc-950/95 px-4 py-2">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-              Dev preview
-            </span>
-            {DEV_VIEWS.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => onSimNavigate?.(v.id)}
-                className={[
-                  'rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors',
-                  inSimulation && simView === v.id
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-500 hover:text-zinc-200',
-                ].join(' ')}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </header>
   );
 }

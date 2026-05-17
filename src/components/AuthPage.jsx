@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import MarketingLayout from './MarketingLayout.jsx';
 
 export default function AuthPage() {
   const { signIn, signInWithGoogle, signUp } = useAuth();
@@ -80,7 +81,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-50">
+    <MarketingLayout>
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
         <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-8 shadow-xl backdrop-blur-md">
           <header className="mb-8 text-center">
@@ -331,7 +332,7 @@ export default function AuthPage() {
           )}
         </div>
       </div>
-    </div>
+    </MarketingLayout>
   );
 }
 

@@ -147,6 +147,28 @@ export default function DebriefDashboard({
         <Sparkles className="h-5 w-5" strokeWidth={1.75} />
       </div>
 
+      {isLoading ? (
+        <div
+          className="no-print mx-auto flex min-h-[min(70vh,36rem)] max-w-6xl flex-col items-center justify-center gap-5 px-6 py-16 text-center"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <Loader2
+            className="h-12 w-12 shrink-0 animate-spin text-cyan-400"
+            strokeWidth={2}
+            aria-hidden
+          />
+          <div className="space-y-2">
+            <p className="text-lg font-semibold tracking-tight text-slate-100 sm:text-xl">
+              Analysing your performance…
+            </p>
+            <p className="max-w-md text-sm text-slate-500">
+              Hang tight while we compile your scores and feedback.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div
         id="debrief-print-root"
         className="mx-auto max-w-6xl space-y-8 print:max-w-none print:space-y-2"
@@ -183,12 +205,7 @@ export default function DebriefDashboard({
           </div>
         )}
 
-        <div
-          className={[
-            'grid grid-cols-1 gap-4 md:grid-cols-3 print:gap-2',
-            isLoading ? 'animate-pulse opacity-80' : '',
-          ].join(' ')}
-        >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 print:gap-2">
           <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-emerald-950/50 to-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4 print:py-3">
             <p className="text-sm font-medium uppercase tracking-wider text-slate-400 print:text-[10px] print:text-slate-700">
               Overall score
@@ -318,20 +335,10 @@ export default function DebriefDashboard({
           </p>
         </section>
 
-        <section
-          className={[
-            'rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4',
-            isLoading ? 'animate-pulse' : '',
-          ].join(' ')}
-        >
+        <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md print:border-slate-200 print:bg-slate-50 print:p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:mb-2">
             <h2 className="text-lg font-semibold tracking-tight print:text-sm">
               Score trend (last {history.length} sessions)
-              {isLoading && (
-                <span className="ml-2 text-sm font-normal text-slate-500 print:text-[10px]">
-                  Updating…
-                </span>
-              )}
             </h2>
             <span className="flex items-center gap-2 text-sm text-slate-400 print:text-[10px] print:text-slate-600">
               <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] print:shadow-none" />
@@ -512,6 +519,7 @@ export default function DebriefDashboard({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

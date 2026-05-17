@@ -19,12 +19,12 @@ export const MODE_CONFIG = {
     panelists: [
       {
         id: 'core',
-        label: 'Panelist 1 (Core)',
+        label: 'Primary panelist',
         beyChatUrl: 'https://bey.chat/14aa8a81-1dce-4ed7-b4d2-e3daf164edc9',
       },
       {
         id: 'ops',
-        label: 'Panelist 2 (Ops)',
+        label: 'Assistant',
         beyChatUrl: 'https://bey.chat/9f389e69-9392-4757-8511-a618c95c990a',
       },
     ],

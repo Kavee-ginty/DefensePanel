@@ -1,3 +1,4 @@
+import Footer from './Footer.jsx';
 import TopNav from './TopNav.jsx';
 
 export default function AppShell({
@@ -7,28 +8,28 @@ export default function AppShell({
   onNavigate,
   onSignOut,
   inSimulation = false,
-  simView = null,
-  onSimNavigate,
-  showDevNav = false,
   contentClassName = '',
+  hideFooter = false,
 }) {
-  const navOffset = showDevNav ? 'pt-[8rem]' : 'pt-[4.75rem]';
+  const navOffset = 'pt-[4.75rem]';
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-zinc-950">
       <TopNav
         activePage={activePage}
         userLabel={userLabel}
         onNavigate={onNavigate}
         onSignOut={onSignOut}
         inSimulation={inSimulation}
-        simView={simView}
-        onSimNavigate={onSimNavigate}
-        showDevNav={showDevNav}
       />
-      <main className={[navOffset, contentClassName].filter(Boolean).join(' ')}>
+      <main
+        className={['flex-1', navOffset, contentClassName]
+          .filter(Boolean)
+          .join(' ')}
+      >
         {children}
       </main>
+      {!hideFooter && <Footer />}
     </div>
   );
 }

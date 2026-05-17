@@ -122,8 +122,14 @@ export default function SimulationArena({
         const silentSecond = isSecond && Boolean(agentId2?.trim());
         const liveLabelSuffix = silentSecond ? 'Silent' : 'Live';
 
+        const personaId = briefingSetup?.panelPersona;
+        const baseLabel =
+          isFirst && personaId
+            ? PERSONA_LABEL[personaId] ?? p.label
+            : p.label;
+
         return {
-          label: isLiveSlot ? `${p.label} · ${liveLabelSuffix}` : p.label,
+          label: isLiveSlot ? `${baseLabel} · ${liveLabelSuffix}` : baseLabel,
           embedUrl,
           isBargeIn: false,
           useHeadlessLiveKit,
@@ -136,6 +142,7 @@ export default function SimulationArena({
       agentEmbedUrl,
       agentId2,
       agentEmbedUrl2,
+      briefingSetup?.panelPersona,
     ],
   );
 
