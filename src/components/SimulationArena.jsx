@@ -414,7 +414,7 @@ export default function SimulationArena({
   );
 
   const panelColumn = (
-    <div className="flex h-full min-h-0 w-full shrink-0 flex-col gap-3 lg:w-[380px]">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-3 lg:w-[380px] lg:flex-none">
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         {panels.map((panel, index) =>
           panel.useHeadlessLiveKit ? (
@@ -489,7 +489,7 @@ export default function SimulationArena({
       {rehearsalHint}
 
       <div className="relative mx-auto flex h-[calc(100dvh-4.75rem)] max-h-[calc(100dvh-4.75rem)] max-w-6xl flex-col gap-4 overflow-hidden p-4 pt-2 lg:flex-row lg:gap-6 lg:p-6">
-        <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {showDocPreview ? (
             <PdfPresentationView file={documentFile} arena />
           ) : (

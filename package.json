@@ -17,6 +17,7 @@
     "docx-preview": "^0.3.7",
     "dotenv": "^17.4.2",
     "formidable": "^3.5.4",
+    "framer-motion": "^12.39.0",
     "jszip": "^3.10.1",
     "livekit-client": "^2.9.0",
     "lucide-react": "^0.510.0",
