@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, FileText, Loader2 } from 'lucide-react';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { getDocumentKind } from '../lib/extractDocumentText.js';
+
+GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+const PDF_MAX_PAGES = 120;
 
 export default function PdfPresentationView({
   file = null,
@@ -8,13 +14,15 @@ export default function PdfPresentationView({
   compact = false,
   arena = false,
 }) {
-  const [objectUrl, setObjectUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [docxHost, setDocxHost] = useState(null);
   const [pptxFrame, setPptxFrame] = useState(null);
   const [pptxHost, setPptxHost] = useState(null);
+  const [pdfHost, setPdfHost] = useState(null);
   const resizeTimerRef = useRef(null);
+  const pdfResizeTimerRef = useRef(null);
+  const activePdfDocRef = useRef(null);
   const kind = useMemo(() => getDocumentKind(file), [file]);
 
   const docxRef = useCallback((node) => {
@@ -29,25 +37,139 @@ export default function PdfPresentationView({
     setPptxHost(node);
   }, []);
 
-  useEffect(() => {
-    if (!file || kind === 'pdf' || !kind) {
-      setIsLoading(false);
-      setLoadError(null);
-    }
-  }, [file, kind]);
+  const pdfHostRef = useCallback((node) => {
+    setPdfHost(node);
+  }, []);
 
   useEffect(() => {
-    if (!file || kind !== 'pdf') {
-      setObjectUrl(null);
+    if (!file || kind !== 'pdf' || !pdfHost) {
+      if (pdfHost) pdfHost.innerHTML = '';
       return undefined;
     }
 
-    const url = URL.createObjectURL(
-      new Blob([file], { type: 'application/pdf' }),
-    );
-    setObjectUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file, kind]);
+    let gen = 0;
+    const bumpGen = () => {
+      gen += 1;
+      return gen;
+    };
+
+    const run = async (token) => {
+      setIsLoading(true);
+      setLoadError(null);
+      let pdfDoc = null;
+      try {
+        const raw = await file.arrayBuffer();
+        if (token !== gen) return;
+
+        const data = new Uint8Array(raw);
+        pdfDoc = await getDocument({ data }).promise;
+        if (token !== gen) {
+          await pdfDoc.destroy();
+          return;
+        }
+
+        const prevDoc = activePdfDocRef.current;
+        if (prevDoc && prevDoc !== pdfDoc) {
+          await prevDoc.destroy().catch(() => {});
+        }
+        activePdfDocRef.current = pdfDoc;
+        pdfHost.innerHTML = '';
+
+        const widthBase =
+          pdfHost.clientWidth ||
+          pdfHost.getBoundingClientRect().width ||
+          Math.min(
+            typeof window !== 'undefined' ? window.innerWidth - 24 : 360,
+            560,
+          );
+
+        const dpr = Math.min(
+          typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1,
+          2,
+        );
+        const total = Math.min(pdfDoc.numPages, PDF_MAX_PAGES);
+
+        for (let i = 1; i <= total; i += 1) {
+          if (token !== gen) break;
+          const page = await pdfDoc.getPage(i);
+          const base = page.getViewport({ scale: 1 });
+          const scale = Math.min(
+            2.5,
+            Math.max(0.4, (widthBase - 16) / base.width),
+          );
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { alpha: false });
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.className =
+            'mx-auto mb-3 max-w-full rounded border border-zinc-800/90 bg-white shadow-sm';
+          if (dpr !== 1) {
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          if (token !== gen) break;
+          pdfHost.appendChild(canvas);
+          page.cleanup();
+        }
+
+        if (token === gen && pdfDoc.numPages > PDF_MAX_PAGES) {
+          const note = document.createElement('p');
+          note.className = 'px-2 pb-4 text-center text-xs text-zinc-500';
+          note.textContent = `Showing first ${PDF_MAX_PAGES} pages only.`;
+          pdfHost.appendChild(note);
+        }
+
+        if (token !== gen && pdfDoc) {
+          await pdfDoc.destroy().catch(() => {});
+          if (activePdfDocRef.current === pdfDoc) {
+            activePdfDocRef.current = null;
+          }
+        }
+      } catch (err) {
+        if (token === gen) {
+          console.error('[PdfPresentationView] PDF render failed', err);
+          setLoadError('Could not preview this PDF.');
+        }
+        if (pdfDoc) {
+          await pdfDoc.destroy().catch(() => {});
+          if (activePdfDocRef.current === pdfDoc) {
+            activePdfDocRef.current = null;
+          }
+        }
+      } finally {
+        if (token === gen) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const schedule = () => {
+      const token = bumpGen();
+      requestAnimationFrame(() => {
+        void run(token);
+      });
+    };
+
+    schedule();
+
+    const ro = new ResizeObserver(() => {
+      window.clearTimeout(pdfResizeTimerRef.current);
+      pdfResizeTimerRef.current = window.setTimeout(schedule, 200);
+    });
+    ro.observe(pdfHost);
+
+    return () => {
+      bumpGen();
+      ro.disconnect();
+      window.clearTimeout(pdfResizeTimerRef.current);
+      void activePdfDocRef.current?.destroy().catch(() => {});
+      activePdfDocRef.current = null;
+      pdfHost.innerHTML = '';
+    };
+  }, [file, kind, pdfHost]);
 
   useEffect(() => {
     if (!file || kind !== 'docx' || !docxHost) {
@@ -157,20 +279,16 @@ export default function PdfPresentationView({
       ? 'relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 ring-1 ring-zinc-800/80'
       : 'relative flex min-h-[280px] w-full flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 ring-1 ring-zinc-800/80 lg:min-h-[min(72vh,720px)]';
 
-  const viewerClass = 'h-full min-h-0 w-full flex-1 border-0 bg-zinc-950';
-
-  const pdfSrc = objectUrl
-    ? `${objectUrl}#toolbar=0&navpanes=0&scrollbar=1`
-    : null;
-
   return (
     <div className={[frameClass, className].join(' ')}>
-      {pdfSrc ? (
-        <iframe
-          src={pdfSrc}
-          title={file?.name || 'Presentation'}
-          className={viewerClass}
-        />
+      {file && kind === 'pdf' ? (
+        <div className="flex min-h-0 flex-1 flex-col bg-zinc-950">
+          <div
+            ref={pdfHostRef}
+            className="pdf-canvas-host min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 sm:px-4"
+            aria-label={file?.name ? `PDF preview: ${file.name}` : 'PDF preview'}
+          />
+        </div>
       ) : file && kind === 'docx' ? (
         <div className="flex min-h-0 flex-1 flex-col bg-zinc-950">
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
