@@ -1,7 +1,7 @@
 import { PITCH_ACCEPT } from './allowedAccept.js';
 
-const MULTI_FILE_ERROR = 'Please upload a PDF, DOCX, or PPTX file.';
-const PITCH_DROPZONE = 'PDF, DOCX, or PPTX';
+const MULTI_FILE_ERROR = 'Please upload a pdf, docx, or pptx (10 MB Max) file.';
+const PITCH_DROPZONE = 'PDF, DOCX, or PPTX (10 MB Max)';
 
 export const MODE_CONFIG = {
   startup: {

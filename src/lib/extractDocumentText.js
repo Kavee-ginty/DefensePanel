@@ -89,7 +89,7 @@ async function extractPptxText(file) {
 export async function extractDocumentText(file) {
   const kind = getDocumentKind(file);
   if (!kind) {
-    throw new Error('Unsupported file type. Please upload a PDF, DOCX, or PPTX file.');
+    throw new Error('Unsupported file type. Please upload a pdf, docx, or pptx (10 MB Max)file.');
   }
 
   try {

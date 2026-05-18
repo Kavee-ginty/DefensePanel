@@ -131,7 +131,7 @@ async function extractDocumentText(file, buffer) {
   if (kind === 'pdf') return extractPdfText(buffer)
   if (kind === 'docx') return extractDocxText(buffer)
   if (kind === 'pptx') return extractPptxText(buffer)
-  throw new Error('Unsupported file type. Please upload a PDF, DOCX, or PPTX file.')
+  throw new Error('Unsupported file type. Please upload a pdf, docx, or pptx (10 MB Max) file.')
 }
 
 async function extractUploadedDocumentText(files) {

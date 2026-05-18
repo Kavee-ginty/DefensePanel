@@ -499,7 +499,7 @@ npm run dev
 
 1. **Auth** — Login (email/password) or Register (username, email, password)
 2. **Lobby** — Select Startup Pitch, Academic Viva, or Technical Interview
-3. **Briefing** — Upload mode-specific PDF, DOCX, or PPTX context
+3. **Briefing** — Upload mode-specific pdf, docx, or pptx (10 MB Max)context
 4. **Arena** — Startup Pitch: multi-format presentation preview + presenter PIP + panelists; other modes: full webcam + panelists
 5. **Debrief** — Performance analytics (mock data until API is wired)
 
